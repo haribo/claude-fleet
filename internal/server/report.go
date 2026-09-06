@@ -194,8 +194,17 @@ func (s *Server) maybeSample(ctx context.Context, sessionID, at string, output i
 // wasted (#258).
 func visibleSignature(s store.Session) string {
 	u := s.Usage
-	return fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%t|%s|%d|%s|%s|%d|%d|%d|%d|%s|%d|%t|%s",
-		s.Status, s.StatusChangedAt, s.Detail, s.Title, s.User, s.Machine, s.Model,
+	return fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%t|%s|%d|%s|%s|%d|%d|%d|%d|%s|%d|%t|%s",
+		s.Status, s.StatusChangedAt,
+		// The end time is covered rather than derived from the status change. It was
+		// excluded on the premise that one always accompanied the other, which #739
+		// ended: the stamp now fires whenever a report establishes the end and none
+		// is recorded yet, and a session can be `ended` with no time — a report
+		// carrying no timestamp, or a row that ended before #739 shipped. The time
+		// then appeared with the status standing still, and nothing was published
+		// (#765).
+		s.EndedAt,
+		s.Detail, s.Title, s.User, s.Machine, s.Model,
 		s.GitBranch, s.ProjectDir, s.LastTool, s.RemoteControl, s.RemoteURL, s.APIErrorStatus,
 		s.CallAt, s.CallMessage, // raising or clearing a call must reach the dashboards (#388)
 		u.InputTokens, u.OutputTokens, u.CacheCreationTokens, u.CacheReadTokens,
