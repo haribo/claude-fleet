@@ -9,6 +9,13 @@ file is the single source of truth, not a second narrative.
 
 ## [Unreleased]
 
+### Fixed
+
+- `n` opens the session that is calling even when hiding ended sessions would
+  keep it off the board. A call outlives the session that raised it, so a caller
+  whose process had died was picked by the jump and hidden from it at the same
+  time — and the panel opened on another session (#758).
+
 ## [0.13.0] - 2026-09-06
 
 ### Changed
