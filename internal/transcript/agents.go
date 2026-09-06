@@ -57,7 +57,12 @@ var (
 	// by the watcher's liveness cap (agentWindow), not permanent.
 	notifBlockRe = regexp.MustCompile(`(?s)<task-notification>(.*?)</task-notification>`)
 	toolUseIDRe  = regexp.MustCompile(`<tool-use-id>\s*(toolu_[A-Za-z0-9]+)\s*</tool-use-id>`)
-	completedRe  = regexp.MustCompile(`<status>\s*completed\s*</status>`)
+	// A notification is terminal on three statuses, not one. Measured over the
+	// local corpus: 836 `completed`, 87 `failed`, 13 `killed`. Matching only
+	// `completed` left one background command in ten open for the rest of the
+	// transcript (#748); no agent has been observed ending any other way, but the
+	// same reading is right for both — the task is over either way.
+	terminalRe = regexp.MustCompile(`<status>\s*(completed|failed|killed)\s*</status>`)
 )
 
 // clearNotifications closes the in-flight agents named by a completed
@@ -80,7 +85,7 @@ func (p *pendingAgents) clearNotifications(raw json.RawMessage) (carried bool) {
 	for _, blk := range notifBlockRe.FindAllStringSubmatch(s, -1) {
 		carried = true
 		body := blk[1]
-		if !completedRe.MatchString(body) {
+		if !terminalRe.MatchString(body) {
 			continue // still running (or resumed) — leave it in flight
 		}
 		if m := toolUseIDRe.FindStringSubmatch(body); m != nil {
