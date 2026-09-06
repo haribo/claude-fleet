@@ -52,9 +52,10 @@ Four families, four colours:
 | **At rest** — between turns | `idle` | `#2563eb` | `#60a5fa` |
 | **Over** — nothing more will happen | `stale`, `ended` | `#94a3b8` | `#64748b` |
 
-The calling family keeps three colours because they are three different asks:
-answer a prompt, look at an outage. The other families ask for
-nothing, so they need no distinction between their members.
+The calling family keeps two colours because they are two different asks: answer
+a prompt, look at an outage. It carried a third for `stalled`, which
+[ADR-0012](../adr/0012-retire-the-stalled-status.md) removed. The other families
+ask for nothing, so they need no distinction between their members.
 
 **`stale` and `ended` share the grey deliberately.** Under the rule they are one
 family. Telling them apart is a *second* reading and is carried by shape — `◌`

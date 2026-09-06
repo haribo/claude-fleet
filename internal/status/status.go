@@ -24,8 +24,10 @@
 // so a session stuck on a 529 carried no mark at all.
 //
 // `All` is still read by the dashboard and the indicator for styling and
-// grouping, and those two scrapes remain until #618 and #619 remove their subject
-// too.
+// grouping. Each keeps its own ordered copy — a module-private constant is
+// reachable no other way — and the copies are pinned against
+// `test/fixtures/status-vocabulary.json` from both sides rather than scraped out
+// of the JavaScript, which is what #618 and #619 replaced.
 package status
 
 // All is every status a session can hold, in the order the design document lists

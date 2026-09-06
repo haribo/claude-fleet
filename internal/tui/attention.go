@@ -9,8 +9,12 @@ import (
 )
 
 // isAttention reports whether a session's state calls for the operator — it is
-// blocked and needs a human: waiting on input, errored, or hung on a tool
-// (#256).
+// blocked and needs a human: waiting on input, or stopped on an API error.
+//
+// It listed a third, a session hung on a tool. vigie cannot know a tool is hung —
+// the pairing proves a call is outstanding, never that it is stuck — which is
+// what [ADR-0012](../../docs/adr/0012-retire-the-stalled-status.md) removed
+// `stalled` for.
 //
 // The daemon decides it (ADR-0011, #617). The set used to live in
 // internal/status precisely so the TUI and the GNOME indicator could not
