@@ -38,7 +38,8 @@ func TestNotifyTransitions(t *testing.T) {
 	// never sends.
 	sess := func(id, st string) api.SessionView {
 		// Name as the daemon derives it — the notification is fed the display name (#618).
-		return api.SessionView{ID: id, Title: id, Name: id, Status: st, Attention: status.NeedsAttention(st)}
+		return api.SessionView{ID: id, Title: id, Name: id, Status: st,
+			Attention: status.NeedsAttention(st), AttentionReason: status.Reason(st, false)}
 	}
 
 	// First apply arms the remembered state; a session seen for the first time never
@@ -56,8 +57,8 @@ func TestNotifyTransitions(t *testing.T) {
 	// entry into the set calls the operator. Startup silence never depended on it.
 	m = m.withNotifiedTransitions([]api.SessionView{sess("a", "waiting"), sess("b", "waiting")})
 	sort.Strings(fired)
-	if len(fired) != 2 || fired[0] != "a:waiting" || fired[1] != "b:waiting" {
-		t.Fatalf("fired %v, want both a:waiting and b:waiting", fired)
+	if len(fired) != 2 || fired[0] != "a:is waiting for input" || fired[1] != "b:is waiting for input" {
+		t.Fatalf("fired %v, want both a and b told what is being asked of them", fired)
 	}
 	// Still waiting on the next tick → no re-notify (edge-triggered).
 	m = m.withNotifiedTransitions([]api.SessionView{sess("a", "waiting"), sess("b", "waiting")})
@@ -67,8 +68,8 @@ func TestNotifyTransitions(t *testing.T) {
 	// Leaving the set re-arms it: the next entry fires again.
 	m = m.withNotifiedTransitions([]api.SessionView{sess("a", "working"), sess("b", "waiting")})
 	m = m.withNotifiedTransitions([]api.SessionView{sess("a", "error"), sess("b", "waiting")})
-	if len(fired) != 3 || fired[len(fired)-1] != "a:error" {
-		t.Errorf("fired %v, want a:error after a returned to the set", fired)
+	if len(fired) != 3 || fired[len(fired)-1] != "a:hit an API error" {
+		t.Errorf("fired %v, want the API error named after a returned to the set", fired)
 	}
 
 	// Focus suppresses; a fresh working→error transition must stay silent.

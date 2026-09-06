@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -23,8 +24,7 @@ type Store interface {
 	GetSession(ctx context.Context, id string) (store.Session, error)
 	ApplySession(ctx context.Context, id string, merge func(store.Session, bool) store.Session) (store.Session, error)
 	ListSessions(ctx context.Context) ([]store.Session, error)
-	AppendEvent(ctx context.Context, e store.Event) error
-	LastEvent(ctx context.Context, sessionID string) (store.Event, bool, error)
+	AppendEventClosingInterval(ctx context.Context, e store.Event, bucket func(last store.Event, ok bool) store.StatusInterval) error
 	AddSample(ctx context.Context, sessionID, at string, outputTokens int64) error
 	RollUpTokens(ctx context.Context, sessionID string, total int64, day, model string) (int64, error)
 	AddDailyStatusSeconds(ctx context.Context, day, model, status string, secs int64) error
@@ -93,6 +93,28 @@ func (s *Server) Handler() http.Handler {
 	// live on the ops listener (daemon), never on the token-protected API port.
 	// limitBody caps request bodies before any handler reads them.
 	return withMetrics(limitBody(mux))
+}
+
+// decodeBody reads a JSON request body and answers the two ways it can fail.
+//
+// A body that hit the cap is `413`, not `400`. Only the report endpoint told them
+// apart; the other four answered "invalid json body" to an operator whose JSON
+// was fine and whose payload was simply too big — naming the wrong fix (#740).
+//
+// It returns "" when the body decoded, and otherwise the metric reason for the
+// refusal, having already written the response. The reason is returned rather
+// than counted here because only the report path has a metric for it.
+func (s *Server) decodeBody(w http.ResponseWriter, r *http.Request, v any) (reason string) {
+	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			s.writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
+			return "too_large"
+		}
+		s.writeError(w, http.StatusBadRequest, "invalid json body")
+		return "bad_json"
+	}
+	return ""
 }
 
 // maxBodyBytes bounds a request body; real reports are a few KB, so 1 MiB is

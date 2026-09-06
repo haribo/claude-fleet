@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -41,8 +40,7 @@ func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleSetSettings(w http.ResponseWriter, r *http.Request) {
 	var req api.Settings
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		s.writeError(w, http.StatusBadRequest, "invalid json body")
+	if s.decodeBody(w, r, &req) != "" {
 		return
 	}
 	if req.SessionRetention != "" {

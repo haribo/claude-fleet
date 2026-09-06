@@ -571,3 +571,20 @@ export function watcherCell(verdict) {
   if (verdict === WATCHER_UNREADABLE) return { cls: "w-bad", text: "time?" };
   return watcherAlarm(verdict) ? { cls: "w-bad", text: "none" } : { cls: "w-ok", text: "live" };
 }
+
+// bodyFor is the notification body: what is being asked, not what the session is.
+// It read the raw status, so a session stopped on a 529 was announced as "error"
+// — a word from the machine's vocabulary, and the wrong instruction (#742).
+//
+// The daemon decides *which* reason applies (`attention_reason`), the same call it
+// already makes for the attention set (ADR-0011, #617). The wording is ours: the
+// dashboard has the board on screen, so unlike the GNOME toast it names no machine
+// or branch.
+export function bodyFor(s) {
+  switch (s && s.attention_reason) {
+    case "call":    return s.call_message ? String(s.call_message) : "calling you";
+    case "waiting": return "is waiting for input";
+    case "error":   return "hit an API error";
+    default:        return "needs you";
+  }
+}

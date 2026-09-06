@@ -77,6 +77,7 @@ func sanitizeSessions(sessions []api.SessionView) []api.SessionView {
 		// ranking's own Status is cleaned, and one exemption reasoned two ways in one
 		// file is how a reader learns to skip the reasons (#635).
 		s.Status = sanitizeText(s.Status)
+		s.AttentionReason = sanitizeText(s.AttentionReason)
 		s.LastTool = sanitizeText(s.LastTool)
 		s.Detail = sanitizeText(s.Detail)
 		s.RemoteURL = sanitizeText(s.RemoteURL)

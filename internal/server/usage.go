@@ -17,8 +17,7 @@ const usageMetaKey = "usage"
 
 func (s *Server) handleUsageLease(w http.ResponseWriter, r *http.Request) {
 	var req api.LeaseRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		s.writeError(w, http.StatusBadRequest, "invalid json body")
+	if s.decodeBody(w, r, &req) != "" {
 		return
 	}
 	if req.Holder == "" {
@@ -56,8 +55,7 @@ func (s *Server) handleUsageLease(w http.ResponseWriter, r *http.Request) {
 // figure instead of a wrong one.
 func (s *Server) handlePostUsage(w http.ResponseWriter, r *http.Request) {
 	var rep api.UsageReport
-	if err := json.NewDecoder(r.Body).Decode(&rep); err != nil {
-		s.writeError(w, http.StatusBadRequest, "invalid json body")
+	if s.decodeBody(w, r, &rep) != "" {
 		return
 	}
 	holder, held, err := s.store.LeaseHolder(r.Context(), s.now())

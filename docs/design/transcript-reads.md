@@ -49,7 +49,7 @@ retries. Any scheme that reads less than everything has to carry that set.
 
 ## 3. The watcher already reads the transcript correctly
 
-`scanner.parse` (`internal/watch/watch.go`) keeps one `transcript.Parser` per file
+`scanner.parse` (`internal/watch/scanner.go`) keeps one `transcript.Parser` per file
 and feeds it only the newly-appended bytes, resuming from the parser's offset
 (#257). A file that shrank or is seen for the first time is parsed from scratch, so
 truncation and rotation are safe. It re-reads nothing.

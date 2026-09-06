@@ -9,6 +9,48 @@ file is the single source of truth, not a second narrative.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-09-06
+
+### Changed
+
+- A desktop notification says what is being asked of you, not what the session
+  is. A session stopped on an API error was announced as `is waiting` in the
+  terminal and as `error` in the browser; all three clients now name the reason,
+  each in its own words (#742).
+
+### Fixed
+
+- A request body over the size cap is refused as too large on every endpoint, not
+  only on reports. The other four answered `invalid json body`, telling an
+  operator their JSON was malformed when it was fine and the payload was simply
+  too big (#740).
+
+- A session waiting on a background command reads `working`, not `idle`. Claude
+  Code answers the launch within seconds while the command runs on, so the turn
+  looked finished and the board offered the session as free — an operator
+  scanning for one interrupted a session that was about to resume by itself
+  (#748).
+
+- The site's status legend shows the colours the product actually uses, and
+  includes `error`. It painted `working` orange where vigie paints it green and
+  `idle` grey where vigie paints it blue, so the page taught a colour rule vigie
+  does not follow (#738).
+
+- A session that ended with its process now shows when it ended. Only a clean end
+  announced by Claude Code stamped a time, so the case where nobody was there to
+  close the session — machine shut down, terminal closed, Claude killed — reached
+  `ended` carrying none (#739).
+
+- A day's working, waiting and idle time can no longer be counted twice. The
+  event log is the mark each interval is measured from, and it was written after
+  the seconds and allowed to fail — so a failed write left the mark behind and the
+  next event remeasured a span already counted, permanently (#737).
+
+- `n` opens the session that is calling, even when a filter hides it. It jumped
+  to the caller and then opened the detail panel on whatever row the cursor
+  happened to be on, so the operator read another session's prompt, branch and
+  last message believing they belonged to the one waiting on them (#736).
+
 ## [0.12.0] - 2026-09-05
 
 ### Changed
@@ -648,7 +690,8 @@ across machines — it reads and reports session state; it never drives a sessio
 - The API binds `127.0.0.1` by default; every `/api/*` route is behind a
   constant-time shared-token check; request bodies are size-capped.
 
-[Unreleased]: https://github.com/haribo/claude-vigie/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/haribo/claude-vigie/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/haribo/claude-vigie/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/haribo/claude-vigie/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/haribo/claude-vigie/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/haribo/claude-vigie/compare/v0.9.1...v0.10.0

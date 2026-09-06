@@ -52,9 +52,10 @@ Four families, four colours:
 | **At rest** — between turns | `idle` | `#2563eb` | `#60a5fa` |
 | **Over** — nothing more will happen | `stale`, `ended` | `#94a3b8` | `#64748b` |
 
-The calling family keeps three colours because they are three different asks:
-answer a prompt, look at an outage. The other families ask for
-nothing, so they need no distinction between their members.
+The calling family keeps two colours because they are two different asks: answer
+a prompt, look at an outage. It carried a third for `stalled`, which
+[ADR-0012](../adr/0012-retire-the-stalled-status.md) removed. The other families
+ask for nothing, so they need no distinction between their members.
 
 **`stale` and `ended` share the grey deliberately.** Under the rule they are one
 family. Telling them apart is a *second* reading and is carried by shape — `◌`
@@ -191,8 +192,43 @@ list, typically an older Claude Code:
   marker, which attaches only to a resting session, is never seen. Interrupting
   during a long silent reasoning pass is the case the marker exists for (#721).
 - a `tool_use` with no matching `tool_result` (paired by id) keeps the session
-  `working`: Claude is waiting on that command, whether it is a foreground call or
-  a backgrounded Bash (`run_in_background`).
+  `working`: Claude is waiting on that command.
+
+  **A backgrounded Bash (`run_in_background`) is not held this way, and never
+  was.** Claude Code answers it at once — measured across 1079 launches in the
+  local corpus, the `tool_result` lands 1.8–3.3 s after the `tool_use`, carrying
+  `Command running in background with ID: …`, and not one was still unanswered
+  when its turn ended. The pairing therefore resolves while the command is still
+  running, the turn reads finished, and a session waiting on a CI watch or a long
+  build reported `idle` (#748). This paragraph used to claim the opposite; it
+  described a model that predates the immediate answer.
+
+  A backgrounded Bash is tracked the way an async subagent is: opened at its
+  `tool_use`, and closed by the `<task-notification>` naming it. Claude Code emits
+  the same notification shape for both, keyed on the same `<tool-use-id>`, so this
+  is one rule on a second type rather than a second mechanism. **Three statuses
+  close it — `completed`, `failed` and `killed`** (measured: 836 / 87 / 13 of 936
+  notifications). Treating only `completed` as terminal would leave one command in
+  ten open for good.
+
+  **No liveness cap, deliberately.** A notification is lost about one time in eight
+  (9–16% a month, steady, spread across sessions — not a historical artefact), and
+  the obvious guard is the subagents' 30-minute window. It is the wrong guard here
+  twice over. It keys on transcript *silence*, and silence is what a background
+  command produces by definition — so it would release exactly the sessions this
+  rule exists to catch. And a duration cap decides from a timer that a command has
+  stopped, which is the claim [ADR-0012](../adr/0012-retire-the-stalled-status.md)
+  removed `stalled` for: vigie can see that a command was launched and not that it
+  is over. A shell that runs for two days is a session working for two days.
+
+  The lost case is closed by a real event instead: **the operator's next prompt**,
+  the same close the rule below already applies to tool calls and subagents. What
+  remains is a session left open, never prompted again, whose notification was
+  lost — reported `working` indefinitely. vigie cannot tell that apart from a
+  genuine long command, and the point of the rule above is that it must not try.
+  The residual error runs in the safe direction: a session wrongly shown busy
+  costs a missed opportunity, one wrongly shown at rest costs an interruption,
+  which is what vigie exists to prevent.
 
   **How long it has been waiting is shown, not judged.** The transcript freezes on
   the `tool_use` line while a command runs, so the SEEN column counts from exactly
@@ -208,8 +244,8 @@ list, typically an older Claude Code:
   records what is lost with it.
 
   **The pairing is scoped to the turn: a real user prompt closes every older
-  unresolved `tool_use` — and every subagent still in flight (#662).** The two
-  are the same rule on two types. An async subagent is closed by a
+  unresolved `tool_use` — and every subagent and backgrounded command still in
+  flight (#662, #748).** They are the same rule on three types. An async subagent is closed by a
   `<task-notification>` naming its launch, and when that never arrives the
   session read `working` at every pause for the rest of the transcript; the
   30-minute liveness cap bounds it only against silence, which a session the

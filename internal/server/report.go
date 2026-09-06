@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -16,15 +14,8 @@ import (
 
 func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 	var req api.ReportRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		var maxErr *http.MaxBytesError
-		if errors.As(err, &maxErr) {
-			metricReportsRejected.WithLabelValues("too_large").Inc()
-			s.writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
-			return
-		}
-		metricReportsRejected.WithLabelValues("bad_json").Inc()
-		s.writeError(w, http.StatusBadRequest, "invalid json body")
+	if reason := s.decodeBody(w, r, &req); reason != "" {
+		metricReportsRejected.WithLabelValues(reason).Inc()
 		return
 	}
 	if req.SessionID == "" || req.Event == "" {
@@ -79,15 +70,10 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 	if req.Event == "watch" {
 		s.recordWatchHeartbeat(ctx, req)
 	} else {
-		// A hook event closes the previous status interval; roll up its
-		// duration before recording the transition.
-		s.rollupStatusInterval(ctx, sess, req)
-		if err := s.store.AppendEvent(ctx, store.Event{
-			SessionID: sess.ID, Event: req.Event, Status: sess.Status, CreatedAt: req.Timestamp,
-		}); err != nil {
-			// The session is already updated; the event log is best-effort.
-			s.log.Error("appending event", "error", err)
-		}
+		// A hook event closes the previous status interval. The event log is the
+		// mark that interval is measured from, so recording the transition and
+		// counting its duration are one write, not two (#737).
+		s.closeStatusInterval(ctx, sess, req)
 	}
 
 	s.maybeSample(ctx, sess.ID, req.Timestamp, sess.Usage.OutputTokens)
@@ -135,21 +121,30 @@ func (s *Server) rollupTokens(ctx context.Context, _, sess store.Session, req ap
 	metricOutputTokens.WithLabelValues(modelLabel(sess.Model)).Add(float64(delta)) // bounded: see modelFamilies (#528)
 }
 
-// rollupStatusInterval closes the interval since the session's previous event by
-// adding its duration to that status's daily bucket. Only hook events carry
-// status transitions, so the watcher's polls never reach here. Best-effort.
-func (s *Server) rollupStatusInterval(ctx context.Context, sess store.Session, req api.ReportRequest) {
-	last, ok, err := s.store.LastEvent(ctx, sess.ID)
-	if err != nil || !ok {
-		return
-	}
-	secs := secondsBetween(last.CreatedAt, req.Timestamp)
-	if secs <= 0 {
-		return
-	}
-	// Attribute the whole interval to its start day (no midnight split in v1).
-	if err := s.store.AddDailyStatusSeconds(ctx, dayOf(last.CreatedAt, s.now()), sess.Model, last.Status, secs); err != nil {
-		s.log.Error("rolling up daily status", "error", err)
+// closeStatusInterval records the transition and, in the same write, adds the
+// interval since the session's previous event to that status's daily bucket. Only
+// hook events carry status transitions, so the watcher's polls never reach here.
+//
+// Best-effort as a whole, and that is now the point: the log entry is the mark the
+// next interval measures from, so it must never advance over seconds that did not
+// land, nor seconds land over a mark that did not move (#737). A failure drops
+// both, and the next hook counts the interval once.
+func (s *Server) closeStatusInterval(ctx context.Context, sess store.Session, req api.ReportRequest) {
+	e := store.Event{SessionID: sess.ID, Event: req.Event, Status: sess.Status, CreatedAt: req.Timestamp}
+	err := s.store.AppendEventClosingInterval(ctx, e, func(last store.Event, ok bool) store.StatusInterval {
+		if !ok {
+			return store.StatusInterval{} // first event: nothing to close
+		}
+		// Attribute the whole interval to its start day (no midnight split in v1).
+		return store.StatusInterval{
+			Day:    dayOf(last.CreatedAt, s.now()),
+			Model:  sess.Model,
+			Status: last.Status,
+			Secs:   secondsBetween(last.CreatedAt, req.Timestamp),
+		}
+	})
+	if err != nil {
+		s.log.Error("closing status interval", "error", err)
 	}
 }
 
@@ -326,18 +321,30 @@ var idleDetails = map[string]bool{"shell": true, "interrupted": true}
 // resumed session carried the timestamp of an end it had already left behind
 // (#664). A `SessionStart` on a live session finds it empty already, so the clear
 // costs nothing where there is nothing to clear.
+//
+// Both arms read the reconciled status rather than the event that produced it.
+// Keying the clear on `SessionStart` answered one way a session comes back and
+// missed the others — a typed prompt, a watcher finding the process alive — so a
+// session demonstrably running still carried the timestamp of an end it had left
+// behind (#722). Keying the stamp on `SessionEnd` had the same shape and the
+// opposite cost: a session that went with its process — machine shut down,
+// terminal closed, Claude killed — reached `ended` with nobody to announce it and
+// carried no time at all, which is the case an operator most needs one for
+// (#739). `Last seen` does not answer in its place: it advances on every report,
+// and the watcher keeps reporting a dead session for as long as its transcript is
+// inside the scan window.
+//
+// Stamped once, on the report that establishes the end. The watcher goes on
+// re-reporting it every couple of seconds and none of those may move it, or the
+// field says "just now" for as long as the transcript is scanned — which is
+// exactly what makes `Last seen` no use here.
 func applyEndedAt(sess store.Session, req api.ReportRequest) store.Session {
-	if req.Event == "SessionEnd" {
-		sess.EndedAt = req.Timestamp
-	}
-	// Anything that is not over has no end time. Keying the clear on
-	// `SessionStart` alone answered one way a session comes back and missed the
-	// others — a typed prompt, a watcher finding the process alive — so a session
-	// demonstrably running still carried the timestamp of an end it had left
-	// behind (#722). The status has already been reconciled here, so this reads
-	// the outcome rather than guessing from the event that produced it.
 	if sess.Status != "ended" {
 		sess.EndedAt = ""
+		return sess
+	}
+	if sess.EndedAt == "" {
+		sess.EndedAt = req.Timestamp
 	}
 	return sess
 }

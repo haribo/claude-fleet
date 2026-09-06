@@ -74,6 +74,7 @@ func (p *Parser) foldLine(raw []byte) {
 		// of live tool calls, so closing on them would lose a command still running.
 		answered := p.pending.clearToolResults(l.Message.Content)
 		notified := p.agents.clearNotifications(l.Message.Content) // <task-notification> closes an agent (#344)
+		p.pending.clearBackgroundNotifications(l.Message.Content)  // and a backgrounded command (#748)
 		// A real prompt closes the turn every older tool call *and* subagent
 		// belonged to (#483, #662). A line carrying a notification is not one,
 		// however much it looks like plain text: it would retire the siblings of

@@ -112,17 +112,27 @@ type SessionView struct {
 	// rides alongside one (ADR-0010) — and clients that must consider both already
 	// hold CallAt. Folding them together here would lose the distinction the TUI's
 	// jump-to-next depends on, where a call outranks an inferred state.
-	Attention      bool   `json:"attention"`
-	Rank           int    `json:"rank"`
-	LastTool       string `json:"last_tool,omitempty"`
-	Usage          Usage  `json:"usage"`
-	StartedAt      string `json:"started_at"`
-	LastSeenAt     string `json:"last_seen_at"`
-	EndedAt        string `json:"ended_at,omitempty"`
-	RemoteControl  bool   `json:"remote_control"`
-	RemoteURL      string `json:"remote_url,omitempty"`       // /rc resume URL while remote control is active
-	APIErrorStatus int    `json:"api_error_status,omitempty"` // HTTP code when Status == "error", else 0
-	Detail         string `json:"detail,omitempty"`           // contextual detail of the current state (#393)
+	Attention bool `json:"attention"`
+	// AttentionReason is *why* the session is calling — one of
+	// internal/status.Reasons, or empty when nothing is being asked. A raised call
+	// outranks the status, so unlike Attention it does account for one.
+	//
+	// It is a code, never a sentence. A client renders its own wording: a GNOME
+	// toast names the machine and the branch because it carries no other context,
+	// where the TUI has the board on screen. The notification body used to be the
+	// raw status, so a session stopped on a 529 was announced as `is waiting`
+	// (#742).
+	AttentionReason string `json:"attention_reason,omitempty"`
+	Rank            int    `json:"rank"`
+	LastTool        string `json:"last_tool,omitempty"`
+	Usage           Usage  `json:"usage"`
+	StartedAt       string `json:"started_at"`
+	LastSeenAt      string `json:"last_seen_at"`
+	EndedAt         string `json:"ended_at,omitempty"`
+	RemoteControl   bool   `json:"remote_control"`
+	RemoteURL       string `json:"remote_url,omitempty"`       // /rc resume URL while remote control is active
+	APIErrorStatus  int    `json:"api_error_status,omitempty"` // HTTP code when Status == "error", else 0
+	Detail          string `json:"detail,omitempty"`           // contextual detail of the current state (#393)
 	// DetailText is what the DETAIL cell shows, in precedence order: a raised call
 	// first (it is why the row is animated), then the API error code when the
 	// status is `error` (once the API answers 529 the last tool is of no interest,
