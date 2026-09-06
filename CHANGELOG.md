@@ -9,6 +9,8 @@ file is the single source of truth, not a second narrative.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-09-06
+
 ### Changed
 
 - A desktop notification says what is being asked of you, not what the session
@@ -688,7 +690,8 @@ across machines — it reads and reports session state; it never drives a sessio
 - The API binds `127.0.0.1` by default; every `/api/*` route is behind a
   constant-time shared-token check; request bodies are size-capped.
 
-[Unreleased]: https://github.com/haribo/claude-vigie/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/haribo/claude-vigie/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/haribo/claude-vigie/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/haribo/claude-vigie/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/haribo/claude-vigie/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/haribo/claude-vigie/compare/v0.9.1...v0.10.0
