@@ -11,6 +11,11 @@ file is the single source of truth, not a second narrative.
 
 ### Fixed
 
+- A request body over the size cap is refused as too large on every endpoint, not
+  only on reports. The other four answered `invalid json body`, telling an
+  operator their JSON was malformed when it was fine and the payload was simply
+  too big (#740).
+
 - A session waiting on a background command reads `working`, not `idle`. Claude
   Code answers the launch within seconds while the command runs on, so the turn
   looked finished and the board offered the session as free — an operator

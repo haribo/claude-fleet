@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -74,8 +73,7 @@ func machineWatchVersionKey(machine string) string { return "watch_version:" + m
 // tells the watcher when it may resume (#384).
 func (s *Server) handleWatcherHeartbeat(w http.ResponseWriter, r *http.Request) {
 	var req api.HeartbeatRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		s.writeError(w, http.StatusBadRequest, "invalid json body")
+	if s.decodeBody(w, r, &req) != "" {
 		return
 	}
 	if req.Machine == "" {
