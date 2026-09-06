@@ -62,12 +62,54 @@ func (p *pendingTools) clearToolResults(raw json.RawMessage) (answered bool) {
 		return false
 	}
 	for _, b := range blocks {
-		if b.Type == "tool_result" && b.ToolUseID != "" {
-			delete(p.meta, b.ToolUseID)
-			answered = true
+		if b.Type != "tool_result" || b.ToolUseID == "" {
+			continue
 		}
+		answered = true
+		// A backgrounded Bash is answered while it is still running. Claude Code
+		// writes `Command running in background with ID: …` back within seconds —
+		// 1.8 to 3.3 across 1079 launches in the local corpus — so this result says
+		// the command *started*, not that it finished. Deleting on it resolved the
+		// pairing mid-command, the turn read finished, and a session waiting on a CI
+		// watch or a long build reported `idle` (#748).
+		//
+		// It is closed by its <task-notification>, like an async subagent, or by the
+		// operator's next prompt. Not by a timer: see closeTurn and
+		// docs/design/session-status.md § 2.
+		if m, ok := p.meta[b.ToolUseID]; ok && m.background {
+			continue
+		}
+		delete(p.meta, b.ToolUseID)
 	}
 	return answered
+}
+
+// clearBackgroundNotifications closes the background commands named by a terminal
+// <task-notification>. Claude Code emits the same notification for a backgrounded
+// Bash as for an async subagent, keyed on the same <tool-use-id>, so this is the
+// subagent close (#344) applied to the second type that needs it (#748).
+//
+// The notification rides in a user line whose content is a plain string; a
+// non-string content (a tool_result array) carries none.
+func (p *pendingTools) clearBackgroundNotifications(raw json.RawMessage) {
+	if len(raw) == 0 {
+		return
+	}
+	var s string
+	if json.Unmarshal(raw, &s) != nil {
+		return
+	}
+	for _, blk := range notifBlockRe.FindAllStringSubmatch(s, -1) {
+		body := blk[1]
+		if !terminalRe.MatchString(body) {
+			continue // still running — leave it in flight
+		}
+		if m := toolUseIDRe.FindStringSubmatch(body); m != nil {
+			if meta, ok := p.meta[m[1]]; ok && meta.background {
+				delete(p.meta, m[1])
+			}
+		}
+	}
 }
 
 // closeTurn drops every still-unresolved tool_use, called when a prompt the

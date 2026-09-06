@@ -11,6 +11,12 @@ file is the single source of truth, not a second narrative.
 
 ### Fixed
 
+- A session waiting on a background command reads `working`, not `idle`. Claude
+  Code answers the launch within seconds while the command runs on, so the turn
+  looked finished and the board offered the session as free — an operator
+  scanning for one interrupted a session that was about to resume by itself
+  (#748).
+
 - The site's status legend shows the colours the product actually uses, and
   includes `error`. It painted `working` orange where vigie paints it green and
   `idle` grey where vigie paints it blue, so the page taught a colour rule vigie

@@ -544,6 +544,13 @@ func refineStatus(base, activity, id string, info *transcript.Info, activityAge 
 		activity = "running " + info.PendingTool
 	case prevBase == "idle" && base == "working" && info.AgentsActive > 0 && activityAge < agentWindow:
 		activity = info.AgentActivity // the work is running in a subagent
+	case prevBase == "idle" && base == "working" && info.BackgroundActive:
+		// The registry says `shell` for both an operator at a `!` prompt and a
+		// session that launched a background command, and the #280 branch has
+		// already written `shell` into DETAIL on that reading. Only the transcript
+		// separates them, and it just did — so the message follows the status
+		// rather than contradicting it (#748).
+		activity = "background command"
 	}
 	return base, activity
 }
