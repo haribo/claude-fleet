@@ -30,9 +30,13 @@ export function groupOrder(sessions, statusOrder) {
 }
 
 // The statuses that call for the operator: the session is blocked and needs a
-// human. Kept identical to internal/status.Attention — a Go test reads this
-// literal and fails on drift, because an indicator that disagrees with the TUI
-// about when to interrupt you is worse than no indicator (#466).
+// human.
+//
+// There is no list here to keep in step. The daemon decides it and ships the
+// verdict (ADR-0011, #617), so this reads `session.attention` and cannot hold an
+// opinion of its own — which matters most here, of the three clients, because
+// this one has no Go suite watching it. An indicator that disagrees with the
+// terminal about when to interrupt you is worse than no indicator (#466).
 // needsAttention covers both reasons to interrupt: a status that means the
 // session is blocked, and a call the session raised for itself (ADR-0010). The
 // call is not a status — it rides alongside one — so anything deciding whether to
