@@ -1,0 +1,27 @@
+{
+  "_comment": [
+    "Why a session is calling the operator, as a closed vocabulary of codes (#742).",
+    "The daemon derives it and ships it in the session view (`attention_reason`),",
+    "the same way it derives the attention set itself (ADR-0011, #617): which of",
+    "these applies is a decision about the session, and a decision belongs on the",
+    "server or the three clients disagree — the dashboard had already dropped",
+    "`error` from its own attention list once (#538).",
+    "",
+    "The *sentence* is not here, deliberately. The server sends a code, never prose:",
+    "RFC 9457 provides a human-readable field and tells consumers not to act on it,",
+    "because prose emitted by the server fixes the language and the register for",
+    "every client at once. And the three surfaces should not read alike — the GNOME",
+    "toast names the machine and the branch because it carries no other context,",
+    "where the TUI has the board on screen. Each client writes its own wording; this",
+    "file pins what they must all be able to say something about.",
+    "",
+    "`call` outranks the rest: the session said so itself, where `waiting` and",
+    "`error` are deductions (ADR-0010). Read by internal/status/reason_test.go and",
+    "test/js/notify_reason.test.mjs."
+  ],
+  "reasons": [
+    { "reason": "call",    "why": "the session raised a call for the operator" },
+    { "reason": "waiting", "why": "the session is blocked on an answer from the operator" },
+    { "reason": "error",   "why": "the session stopped on a live Claude API error" }
+  ]
+}

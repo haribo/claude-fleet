@@ -114,3 +114,37 @@ func NeedsAttention(s string) bool {
 	}
 	return false
 }
+
+// Reasons is why a session can be calling the operator, a closed vocabulary of
+// codes ordered by precedence. It is what a client renders a sentence from — the
+// notification body used to be the raw status, so a session stopped on a 529 was
+// announced as `is waiting`, which is neither what happened nor what to do about
+// it (#742).
+//
+// Codes, never prose. The daemon decides *which* reason applies, the same way it
+// decides the attention set (ADR-0011, #617) — a client that reimplements that
+// gets it wrong eventually, and one already did (#538). How to say it is the
+// client's, because the three surfaces are not alike: a GNOME toast names the
+// machine and the branch because it carries no other context, where the TUI has
+// the board on screen. Sending the sentence instead would flatten a difference
+// that is correct, and fix the language and register for every client at once —
+// which is why [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) provides a
+// human-readable field and tells consumers not to act on it.
+//
+// Pinned against test/fixtures/attention-reasons.json from both sides.
+var Reasons = []string{"call", "waiting", "error"}
+
+// Reason returns why a session is calling the operator, or "" when nothing is.
+//
+// A raised call outranks the status: the session said so itself, where `waiting`
+// and `error` are deductions about it (ADR-0010). That is the same precedence the
+// jump-to-next key already applies.
+func Reason(s string, hasCall bool) string {
+	if hasCall {
+		return "call"
+	}
+	if NeedsAttention(s) {
+		return s
+	}
+	return ""
+}
