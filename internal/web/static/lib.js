@@ -348,12 +348,14 @@ export function groupSessions(list, mode) {
 }
 
 // The statuses that call for the operator: the session is blocked and needs a
-// human. Kept identical to internal/status.Attention — a Go test reads this
-// literal and fails on drift, because a dashboard that disagrees with the TUI
-// about when to interrupt you is worse than one that never tries (#466).
+// human.
 //
-// The dashboard used to decide for itself, and dropped `error`: a session stuck
-// on a 529 was drawn like any working one (#538).
+// There is no list here to keep in step. The daemon decides it and ships the
+// verdict (ADR-0011, #617), so this reads `session.attention` and cannot hold an
+// opinion of its own. It used to hold one, and dropped `error`: a session stuck
+// on a 529 was drawn like any working one (#538). A dashboard that disagrees with
+// the terminal about when to interrupt you is worse than one that never tries
+// (#466).
 // needsAttention covers both reasons to interrupt: a status that means the
 // session is blocked, and a call the session raised for itself (ADR-0010). The
 // call is not a status — it rides alongside one — so anything deciding whether to

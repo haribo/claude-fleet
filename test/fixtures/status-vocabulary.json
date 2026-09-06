@@ -14,7 +14,9 @@
     "specification, and a Go test keeps it in step with the vocabulary too.",
     "`stalled` was removed by ADR-0012: vigie observes how long a command has been",
     "running, and cannot know whether it is hung — only the operator can. Rows written",
-    "before that release may still carry the word, which clients degrade to idle."
+    "before that release may still carry the word. A status a client does not know is",
+    "drawn neutrally and keeps its own name — never relabelled as another status, which",
+    "showed a `stalled` row resting (#719)."
   ],
   "order": [
     "working",

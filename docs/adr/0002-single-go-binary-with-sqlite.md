@@ -25,8 +25,11 @@ the web dashboard assets in the binary via `embed.FS`.
   Node/Python reporter would pay ~100 ms per hook invocation — a visible tax on
   every Claude action.
 - **Terminal client**: Bubble Tea (Go) is a first-class TUI toolkit.
-- **Distribution**: a static binary cross-compiles for Linux/macOS/Windows and
-  needs no runtime installed on the user's machine.
+- **Distribution**: a static binary cross-compiles for any target and needs no
+  runtime installed on the user's machine. It was written here as
+  Linux/macOS/Windows; releases ship Linux only, because session presence is read
+  from `/proc` ([ADR-0006](0006-session-presence-via-proc.md)). The reason still
+  holds — nothing to install — on the one platform it is exercised on.
 - **Storage**: SQLite is a single file, no database server to deploy — the
   right weight for a self-hosted tool, while still queryable for history.
 
