@@ -51,8 +51,9 @@ var signatureExcluded = map[string]string{
 	// already outside the signature by that design — clients learn of it by
 	// asking again, not by an event. Covering the derivations would not change
 	// that, only lengthen the string.
-	"Attention": "derived from the effective status, which is evaluated at read time and outside the signature by design",
-	"Rank":      "derived from the effective status, which is evaluated at read time and outside the signature by design",
+	"Attention":       "derived from the effective status, which is evaluated at read time and outside the signature by design",
+	"AttentionReason": "derived from the effective status and CallAt; the status is outside by design and the call is covered, so it cannot change alone",
+	"Rank":            "derived from the effective status, which is evaluated at read time and outside the signature by design",
 	// The naming and label family (#618). Each is a pure function of covered
 	// fields, so it cannot change unless one of them does.
 	"Name":       "derived from Title and ID, both covered",

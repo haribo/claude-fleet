@@ -127,19 +127,30 @@ func TestCallNotifies(t *testing.T) {
 	m := model{prefs: prefs{notify: true}, focus: focusOff,
 		sess: sessionsView{prevStatus: map[string]string{}, prevCall: map[string]bool{}}}
 
+	// A session the daemon has answered for: a raised call arrives with the reason
+	// derived beside it, so a fixture carrying CallAt alone describes a response
+	// the server does not send (ADR-0011, #742).
+	call := func(at string) api.SessionView {
+		s := api.SessionView{ID: "a", Title: "a", Name: "a", Status: "idle"}
+		if at != "" {
+			s.CallAt, s.AttentionReason = at, "call"
+		}
+		return s
+	}
+
 	// First observation: a call already raised must stay silent.
-	m = m.withNotifiedTransitions([]api.SessionView{{ID: "a", Title: "a", Status: "idle", CallAt: "t1"}})
+	m = m.withNotifiedTransitions([]api.SessionView{call("t1")})
 	if len(fired) != 0 {
 		t.Errorf("a pre-existing call notified at startup: %v", fired)
 	}
 	// Same call still up: no repeat.
-	m = m.withNotifiedTransitions([]api.SessionView{{ID: "a", Title: "a", Status: "idle", CallAt: "t1"}})
+	m = m.withNotifiedTransitions([]api.SessionView{call("t1")})
 	if len(fired) != 0 {
 		t.Errorf("a standing call notified again: %v", fired)
 	}
 	// Cleared, then raised again: one notification.
-	m = m.withNotifiedTransitions([]api.SessionView{{ID: "a", Title: "a", Status: "idle"}})
-	m.withNotifiedTransitions([]api.SessionView{{ID: "a", Title: "a", Status: "idle", CallAt: "t2"}})
+	m = m.withNotifiedTransitions([]api.SessionView{call("")})
+	m.withNotifiedTransitions([]api.SessionView{call("t2")})
 	if len(fired) != 1 || !strings.Contains(fired[0], "calling you") {
 		t.Errorf("a re-raised call should notify once, got %v", fired)
 	}

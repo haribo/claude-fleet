@@ -78,20 +78,27 @@ test("needsAttention tolerates a missing session", () => {
 
 // The body has to say why: a stalled turn, an API error and a raised call all want
 // different things, and one wording for all three would misinform.
+// The reason arrives derived: the daemon says *which* of the three applies, the
+// indicator says how to put it (ADR-0011, #742). A session built from a raw
+// status alone describes a response the server does not send.
 test("the reason distinguishes the three signals", () => {
-  assert.equal(attentionReason({ status: "idle", call_at: "t", call_message: "build done" }), "build done");
-  assert.equal(attentionReason({ status: "idle", call_at: "t" }), "called you",
+  assert.equal(attentionReason({ attention_reason: "call", call_message: "build done" }), "build done");
+  assert.equal(attentionReason({ attention_reason: "call" }), "called you",
     "a call with no message is still a call");
-  assert.match(attentionReason({ status: "waiting" }), /waiting/);
-  assert.match(attentionReason({ status: "error" }), /error/);
-  assert.equal(attentionReason({ status: "working" }), "");
-  // `stalled` left the vocabulary with ADR-0012; a status the indicator no longer
-  // knows must fall through silently rather than name a cause it cannot support.
-  assert.equal(attentionReason({ status: "stalled" }), "");
+  assert.match(attentionReason({ attention_reason: "waiting" }), /waiting/);
+  assert.match(attentionReason({ attention_reason: "error" }), /error/);
+  assert.equal(attentionReason({ attention_reason: "" }), "");
+  // A reason this build has never heard of must fall through silently rather than
+  // name a cause it cannot support — the same reading `stalled` got when ADR-0012
+  // removed it from under this function.
+  assert.equal(attentionReason({ attention_reason: "stalled" }), "");
 });
 
+// The precedence itself now lives on the server (internal/status.Reason), where
+// one verdict serves all three clients. What is checked here is that the
+// indicator honours it: a session both calling and waiting arrives as a call.
 test("a call outranks the status it rides on", () => {
-  assert.equal(attentionReason({ status: "waiting", call_at: "t", call_message: "done" }), "done",
+  assert.equal(attentionReason({ status: "waiting", attention_reason: "call", call_message: "done" }), "done",
     "the session speaking beats an inference about it");
 });
 
