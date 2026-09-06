@@ -27,6 +27,18 @@ import (
 func (v sessionsView) visible(all []api.SessionView, p prefs, now time.Time) []api.SessionView {
 	out := make([]api.SessionView, 0, len(all))
 	for _, s := range all {
+		// The session the jump is pointing at is on the board whatever would
+		// otherwise hide it. The panel renders the row under the cursor, so a
+		// caller the operator cannot see is a caller the panel cannot show — it
+		// opened on whichever row the cursor had been left on instead (#758).
+		//
+		// Written as an exemption rather than as a list of rules to check, so a
+		// hiding rule added later is covered by construction. That is what went
+		// wrong the first time: #736 reasoned about the rules that existed.
+		if v.revealID != "" && s.ID == v.revealID {
+			out = append(out, s)
+			continue
+		}
 		if !p.visible(s, now) {
 			continue
 		}
@@ -57,16 +69,16 @@ func (v sessionsView) matchesFilter(s api.SessionView) bool {
 	return fuzzyMatch(v.filter, sessionHaystack(s))
 }
 
-// visibleContains reports whether a session id survived the filter and is on
-// screen. `n` asks before it clears anything, so a filter that hides nothing is
-// never disturbed (#736).
-func visibleContains(vis []api.SessionView, id string) bool {
-	for _, s := range vis {
+// sessionByID finds a session in the fleet, or the zero value. `n` asks the
+// filter about the caller itself before clearing anything, so a filter that was
+// not in the way is never disturbed (#736).
+func sessionByID(all []api.SessionView, id string) api.SessionView {
+	for _, s := range all {
 		if s.ID == id {
-			return true
+			return s
 		}
 	}
-	return false
+	return api.SessionView{}
 }
 
 // cursorForSelection returns the cursor index that keeps selectedID under the
@@ -113,6 +125,7 @@ func (v sessionsView) handleNav(msg tea.KeyMsg, vis []api.SessionView) sessionsV
 	case "esc":
 		if v.detail {
 			v.detail = false
+			v.revealID = "" // the panel is closed; the board goes back to the operator's settings
 		} else {
 			v.filter = ""
 		}
@@ -213,6 +226,7 @@ func groupByName(name string) groupBy {
 type sessionsView struct {
 	cursor       int
 	selectedID   string // session under the cursor, tracked across reorders
+	revealID     string // session the jump is pointing at, shown whatever would hide it (#758)
 	detail       bool
 	detailOffset int // scroll offset of the detail view (#378)
 	rowOffset    int // sticky top of the sessions viewport, in body-line space (#378)
@@ -251,22 +265,29 @@ func (m model) handleSessionsKey(msg tea.KeyMsg) model {
 		if id := nextAttention(m.sessions); id != "" {
 			m.sess.selectedID = id
 			// The caller is chosen from the whole fleet, and the cursor indexes the
-			// filtered list. A filter hiding the caller therefore left the cursor
+			// list on screen. Anything hiding the caller therefore left the cursor
 			// where it was and opened the detail panel on whatever row it pointed at
 			// — the operator read another session's prompt, branch and last message
 			// believing they belonged to the one calling, with nothing saying the
-			// jump had missed (#736).
+			// jump had missed (#736, #758).
 			//
-			// The key's promise outranks a filter typed earlier, so the filter goes.
-			// Only when it is what hides the caller: a jump to a session already on
-			// screen leaves the operator's filter where they put it.
+			// So the caller is revealed for as long as its panel is open, whatever
+			// would hide it. Several things can: the filter, the hide-ended
+			// preference — a raised call outlives the session, since only a typed
+			// prompt or a clean SessionEnd clears one — and whatever rule is added
+			// next. #736 enumerated them instead, argued the filter was the only one
+			// from the attention set, and missed the call: a call is not a status and
+			// is not in that set.
 			//
-			// The filter is the only thing that can hide a caller. The other hiding
-			// rule is by age, and a session in the attention set is being reported —
-			// the server calls it stale after 60 s without one, well inside the
-			// shortest age the operator can choose (15 min), and a stale session is
-			// not in the set.
-			if !visibleContains(m.visibleSessions(), id) {
+			// The filter is *also* cleared, and that is a separate thing. Revealing
+			// one row would leave the operator looking at a board still narrowed by a
+			// query they typed for something else; the preference is theirs and
+			// stays, but the query has been answered.
+			m.sess.revealID = id
+			// Asked of the filter directly, not of the list: the reveal above has
+			// already put the caller back on it, so "is it visible?" now always
+			// answers yes and would never clear anything.
+			if !m.sess.matchesFilter(sessionByID(m.sessions, id)) {
 				m.sess.filter = ""
 				m.sess.filtering = false
 			}
