@@ -75,6 +75,29 @@ a function of *now* has to be derived there.
 Such a value takes the second half's treatment, not the first: it stays where it
 is and earns a shared case list.
 
+**A fourth category, found while applying the first (#742): the verdict is the
+server's, the wording is the client's.** The notification body was the raw status,
+so a session stopped on a 529 was announced as `is waiting` in the terminal and as
+`error` in the browser — the machine's word for a state, where the operator needed
+to be told what was being asked of them. *Which* reason applies — a raised call, a
+blocked prompt, an API error — is a decision about the session and takes the first
+half's treatment: the daemon derives it and ships a **code**. The sentence built
+from that code stays in each client and takes the second half's treatment, a
+shared case list naming the codes.
+
+This boundary is easy to cross by accident, because deriving the sentence too
+reads like more of the first half. Two reasons it is not. First, the surfaces are
+not alike and should not read alike: a GNOME toast names the machine and the
+branch because it carries no other context, where the terminal has the board on
+screen — a sentence handed down would flatten a difference that is correct.
+Second, prose emitted by a server fixes the language and the register for every
+client at once, which is why
+[RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) provides a human-readable
+field and tells consumers not to act on it. Shipping display text from the server
+is a real pattern — server-driven UI, as Airbnb and Netflix run it — but it is
+adopted against a constraint vigie does not have: releasing UI changes without an
+app-store round trip. The dashboard travels inside the daemon binary.
+
 **The scrapes are deleted by whichever half covers them.** A constant array that
 survives as client-side data becomes a generated fixture; one that moves to the
 server stops existing twice. `jsArrayFromFile` having no callers left is the
