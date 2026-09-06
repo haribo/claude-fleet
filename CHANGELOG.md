@@ -11,6 +11,9 @@ file is the single source of truth, not a second narrative.
 
 ### Fixed
 
+- An end time recorded after a session was already over now reaches an open
+  dashboard, instead of waiting for a manual reload (#765).
+
 - An open session detail in the browser follows the session. It kept the state it
   was opened with, so a session you opened because it was waiting still said
   `waiting` after you had answered it (#764).

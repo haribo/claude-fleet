@@ -42,7 +42,6 @@ var signatureExcluded = map[string]string{
 	"LastSeenAt": "moves on every report; an event per report is what the signature exists to avoid",
 	"Samples":    "a rolling window recomputed per read, not session state",
 	"StartedAt":  "immutable after creation; a change is impossible",
-	"EndedAt":    "always accompanied by a Status change, which is covered",
 	// Derived by the daemon since ADR-0011 (#616, #617), from inputs already covered.
 	"ContextWindow": "derived from Model, which is covered — it cannot change without it",
 	"ContextPct":    "derived from Model and the context reading, all covered — it cannot change without one of them",
@@ -70,7 +69,7 @@ var signatureExcluded = map[string]string{
 // fieldsCovered lists what the signature reads, by view field name. Kept beside
 // the implementation so the two are edited together.
 var fieldsCovered = []string{
-	"ID", "Status", "StatusChangedAt", "Detail", "Title", "User", "Machine", "Model",
+	"ID", "Status", "StatusChangedAt", "EndedAt", "Detail", "Title", "User", "Machine", "Model",
 	"GitBranch", "ProjectDir", "LastTool", "RemoteControl", "RemoteURL", "APIErrorStatus",
 	"CallAt", "CallMessage", "Usage", "Effort", "ContextTokens", "PermissionMode",
 }
@@ -109,6 +108,9 @@ func TestChangingAnyCoveredFieldChangesTheSignature(t *testing.T) {
 		{"Status", func(s store.Session) store.Session { s.Status = "working"; return s }},
 		{"Detail", func(s store.Session) store.Session { s.Detail = "Edit x.go"; return s }},
 		{"CallAt", func(s store.Session) store.Session { s.CallAt = "2026-08-16T12:00:00Z"; return s }},
+		// #765: it can now change on its own, so the claim is checked rather than
+		// argued from the status.
+		{"EndedAt", func(s store.Session) store.Session { s.EndedAt = "2026-09-06T10:00:00Z"; return s }},
 		{"RemoteURL", func(s store.Session) store.Session { s.RemoteURL = "https://x"; return s }},
 	} {
 		if visibleSignature(base) == visibleSignature(c.apply(base)) {
