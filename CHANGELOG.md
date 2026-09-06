@@ -9,6 +9,13 @@ file is the single source of truth, not a second narrative.
 
 ## [Unreleased]
 
+### Changed
+
+- A desktop notification says what is being asked of you, not what the session
+  is. A session stopped on an API error was announced as `is waiting` in the
+  terminal and as `error` in the browser; all three clients now name the reason,
+  each in its own words (#742).
+
 ### Fixed
 
 - A request body over the size cap is refused as too large on every endpoint, not

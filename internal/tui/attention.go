@@ -88,9 +88,9 @@ func (m model) withNotifiedTransitions(next []api.SessionView) model {
 			switch {
 			case known && calling && !prevCall[s.ID]:
 				// A raised call is exactly what this notification is for (#260).
-				notifyFn(s.Name, "calling you")
+				notifyFn(s.Name, notifyBody(s))
 			case known && attention && !prevAttention[s.ID]:
-				notifyFn(s.Name, s.Status)
+				notifyFn(s.Name, notifyBody(s))
 			}
 		}
 		m.sess.prevStatus[s.ID] = s.Status
@@ -110,6 +110,33 @@ func displayEnv() string {
 	return os.Getenv("WAYLAND_DISPLAY")
 }
 
+// notifyBody is what the notification says, from the reason the daemon derived
+// (`AttentionReason`).
+//
+// It used to be the raw status, prefixed with "is" — so a session stopped on a
+// 529 was announced as "is error", which is neither English nor an instruction
+// (#742). The status is what the session *is*; a notification has to say what is
+// being asked.
+//
+// The wording is the terminal's own. The GNOME toast pairs the same reasons with
+// the machine and the branch because it carries no other context; here the board
+// is on screen. What the three clients share is the reason, not the sentence.
+func notifyBody(s api.SessionView) string {
+	switch s.AttentionReason {
+	case "call":
+		if s.CallMessage != "" {
+			return s.CallMessage
+		}
+		return "calling you"
+	case "waiting":
+		return "is waiting for input"
+	case "error":
+		return "hit an API error"
+	default:
+		return "needs you"
+	}
+}
+
 // notifyFn is the notification sink, indirected so tests can capture transitions
 // without spawning notify-send.
 var notifyFn = notifySend
@@ -118,17 +145,17 @@ var notifyFn = notifySend
 // graphical session (never SSH/headless), never critical, never with sound, and
 // never blocks — a missing notify-send or display simply does nothing, so the
 // render loop can never fail because of it.
-func notifySend(name, status string) {
+func notifySend(name, body string) {
 	// Graphical-session detection, not app config, so the notifier no-ops under
 	// SSH/headless. Shared with the availability probe (#411) so what the Settings
 	// tab reports and what the notifier actually does cannot drift apart.
 	if displayEnv() == "" {
 		return
 	}
-	// Fixed argv, no shell: name/status are notify-send's title/body text, not a
+	// Fixed argv, no shell: name/body are notify-send's title/body text, not a
 	// command, so there is no injection surface.
 	//nolint:gosec // constant command, arguments are display text only
-	startAndReap(exec.Command("notify-send", "-u", "normal", "-a", "vigie", "vigie — "+name, "is "+status), nil)
+	startAndReap(exec.Command("notify-send", "-u", "normal", "-a", "vigie", "vigie — "+name, body), nil)
 }
 
 // startAndReap starts cmd and waits for it somewhere the render loop is not.

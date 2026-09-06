@@ -11,7 +11,7 @@ import {
   adoptLegacyKey, needsAttention, attentionCount, streamIsSilent, REFRESH_MS,
   readWatcher, fleetAlarm, fleetAlarmDetail, watcherCell,
   matchesFilter, GROUP_MODES, groupSessions, contextKnown, contextPct, contextCell, migrateV1Columns,
-  IDLE_PRESETS_MS, idleLabel, hiddenByIdle, STATUSES, SORT_COMPARATORS, DEFAULT_SORT,
+  IDLE_PRESETS_MS, idleLabel, hiddenByIdle, STATUSES, SORT_COMPARATORS, DEFAULT_SORT, bodyFor,
   boardState, emptyMessage, attentionIds, enteredAttention, nextAttention, statusClass,
 } from "./lib.js";
 
@@ -731,11 +731,6 @@ function noteAttention() {
 // The body says *why*, because a permission prompt, an API error and a raised call all
 // want different things from the operator — the same reasoning the GNOME
 // indicator's notification body follows.
-function bodyFor(s) {
-  if (hasCall(s)) return s.call_message ? String(s.call_message) : "calling you";
-  return s.status ? String(s.status) : "needs you";
-}
-
 // jumpToAttention is the browser's `n`: the session blocked longest, or the
 // oldest raised call ahead of it.
 function jumpToAttention() {

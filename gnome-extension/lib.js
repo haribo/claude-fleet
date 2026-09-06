@@ -46,12 +46,17 @@ export function needsAttention(session) {
   return Boolean(session.call_at) || Boolean(session.attention);
 }
 
-// attentionReason says why, for the notification body. A raised call outranks the
-// status: it is the session speaking, not an inference about it.
+// attentionReason is the notification body: why the session wants the operator.
+//
+// The daemon says *which* reason applies (`attention_reason`) — the same call it
+// already makes for the attention set, and one this file used to make for itself
+// against the raw status (ADR-0011, #617, #742). The wording stays here: a desktop
+// toast carries no other context, so the caller pairs this with the machine and
+// the branch, where the TUI has the board on screen.
 export function attentionReason(session) {
   if (!session) return "";
-  if (session.call_at) return session.call_message || "called you";
-  switch (session.status) {
+  switch (session.attention_reason) {
+    case "call":    return session.call_message || "called you";
     case "waiting": return "is waiting for input";
     case "error":   return "hit an API error";
     default:        return "";
