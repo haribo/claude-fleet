@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -92,6 +93,28 @@ func (s *Server) Handler() http.Handler {
 	// live on the ops listener (daemon), never on the token-protected API port.
 	// limitBody caps request bodies before any handler reads them.
 	return withMetrics(limitBody(mux))
+}
+
+// decodeBody reads a JSON request body and answers the two ways it can fail.
+//
+// A body that hit the cap is `413`, not `400`. Only the report endpoint told them
+// apart; the other four answered "invalid json body" to an operator whose JSON
+// was fine and whose payload was simply too big — naming the wrong fix (#740).
+//
+// It returns "" when the body decoded, and otherwise the metric reason for the
+// refusal, having already written the response. The reason is returned rather
+// than counted here because only the report path has a metric for it.
+func (s *Server) decodeBody(w http.ResponseWriter, r *http.Request, v any) (reason string) {
+	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			s.writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
+			return "too_large"
+		}
+		s.writeError(w, http.StatusBadRequest, "invalid json body")
+		return "bad_json"
+	}
+	return ""
 }
 
 // maxBodyBytes bounds a request body; real reports are a few KB, so 1 MiB is

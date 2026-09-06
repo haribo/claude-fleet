@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -16,15 +14,8 @@ import (
 
 func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 	var req api.ReportRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		var maxErr *http.MaxBytesError
-		if errors.As(err, &maxErr) {
-			metricReportsRejected.WithLabelValues("too_large").Inc()
-			s.writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
-			return
-		}
-		metricReportsRejected.WithLabelValues("bad_json").Inc()
-		s.writeError(w, http.StatusBadRequest, "invalid json body")
+	if reason := s.decodeBody(w, r, &req); reason != "" {
+		metricReportsRejected.WithLabelValues(reason).Inc()
 		return
 	}
 	if req.SessionID == "" || req.Event == "" {
