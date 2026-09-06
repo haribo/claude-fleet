@@ -11,6 +11,10 @@ file is the single source of truth, not a second narrative.
 
 ### Fixed
 
+- An open session detail in the browser follows the session. It kept the state it
+  was opened with, so a session you opened because it was waiting still said
+  `waiting` after you had answered it (#764).
+
 - A daemon restarted without `VIGIE_TOKEN` says so instead of re-keying the fleet
   in silence. It comes back on the token it had stored before the variable was
   adopted, so every machine is refused — and the failure used to look like a

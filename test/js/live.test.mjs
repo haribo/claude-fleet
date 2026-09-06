@@ -63,9 +63,14 @@ function harness({ token = "t0k3n", sessions = [], group = null, idle = null, sh
     return node;
   };
   const byId = (id) => { if (!elements.has(id)) elements.set(id, element(id)); return elements.get(id); };
+  // Document-level listeners are recorded, not dropped: the keyboard is the only
+  // way into a detail view from here — a row click goes through elements the
+  // proxy does not model — and what a detail does over time is exactly this
+  // file's subject (#764).
   globalThis.document = {
     getElementById: byId, querySelectorAll: () => [], createElement: () => byId("<new>"),
-    addEventListener: () => {}, documentElement: byId("<root>"), body: byId("<body>"),
+    addEventListener: (ev, fn) => h.listeners.set(`document:${ev}`, fn),
+    documentElement: byId("<root>"), body: byId("<body>"),
   };
   globalThis.window = globalThis;
   globalThis.localStorage = {
@@ -73,6 +78,8 @@ function harness({ token = "t0k3n", sessions = [], group = null, idle = null, sh
     setItem() {}, removeItem() {},
   };
   globalThis.matchMedia = () => ({ matches: false, addEventListener() {} });
+  h.scrolls = 0;
+  globalThis.scrollTo = () => { h.scrolls++; };
 
   globalThis.Date.now = () => h.now;
   globalThis.setInterval = (fn, ms) => { h.intervals.push({ fn, ms }); return h.intervals.length; };
@@ -131,6 +138,17 @@ function harness({ token = "t0k3n", sessions = [], group = null, idle = null, sh
     const fn = h.listeners.get(`${id}:${ev}`);
     assert.ok(fn, `nothing listens for "${ev}" on #${id} — listeners: ${[...h.listeners.keys()]}`);
     fn(e); await flush();
+  };
+  h.press = async (key) => {
+    const fn = h.listeners.get("document:keydown");
+    assert.ok(fn, "nothing listens for keydown on the document");
+    fn({ key, target: null, preventDefault() {} });
+    await flush();
+  };
+  h.detailWrites = () => h.writes.filter((x) => x.id === "view-detail");
+  h.lastDetail = () => {
+    const w = h.detailWrites();
+    return w.length ? w[w.length - 1].html : "";
   };
   h.lastTable = () => {
     const w = h.writes.filter((x) => x.id === "tab-sessions");
@@ -575,4 +593,54 @@ test("the alarm appears as time passes, with no new answer from the server", asy
   assert.equal(h.count("/api/watcher"), asked, "this must not depend on asking the server again");
   assert.match(h.lastBot(), /2 of 2 not reporting \(box, orion\)/,
     "a verdict the daemon had computed would still read as live here");
+});
+
+// #764. A detail panel is a live reading in the terminal and was a photograph
+// here: every refresh path skipped rendering while one was open, and nothing
+// re-filled the panel itself. The session could finish its turn, start waiting,
+// or die with its machine, and the panel went on showing the moment it opened.
+//
+// Worst shape of it: a session opened *because* it was waiting still said
+// `waiting` after the operator had answered it — the panel arguing against the
+// terminal they had just typed into.
+test("an open detail follows the session it is showing", async () => {
+  const waiting = {
+    id: "s1", name: "s1", machine: "m", status: "waiting", attention: true,
+    attention_reason: "waiting", status_changed_at: "2026-09-06T10:00:00Z",
+    last_seen_at: "2026-09-06T10:00:00Z", usage: { output_tokens: 100 },
+  };
+  const h = harness({ sessions: [waiting] });
+  await h.boot();
+
+  await h.press("n"); // the jump opens the session calling — the operator's own path
+  const opened = h.lastDetail();
+  assert.match(opened, /waiting/, `the panel did not open on the waiting session:\n${opened}`);
+
+  // The operator answers it in their terminal; the next poll carries the change.
+  h.sessions = [{ ...waiting, status: "working", attention: false, attention_reason: "", usage: { output_tokens: 900 } }];
+  const before = h.detailWrites().length;
+  await h.tick();
+
+  assert.ok(h.detailWrites().length > before,
+    "the poll brought a new status and the panel was never repainted");
+  const now = h.lastDetail();
+  assert.match(now, /working/, `the panel still shows the state it opened on:\n${now}`);
+});
+
+// The repaint does not steal the page back: an operator reading a long panel is
+// not scrolled to the top every five seconds.
+test("refreshing a detail leaves the operator where they were", async () => {
+  const s = {
+    id: "s1", name: "s1", machine: "m", status: "waiting", attention: true,
+    attention_reason: "waiting", last_seen_at: "2026-09-06T10:00:00Z", usage: {},
+  };
+  const h = harness({ sessions: [s] });
+  await h.boot();
+  await h.press("n");
+
+  const scrolls = h.scrolls;
+  h.sessions = [{ ...s, status: "working", attention: false }];
+  await h.tick();
+  assert.equal(h.scrolls, scrolls,
+    "the refresh scrolled the page back to the top under the operator");
 });
