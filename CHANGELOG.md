@@ -11,6 +11,10 @@ file is the single source of truth, not a second narrative.
 
 ### Fixed
 
+- A daemon restarted without `VIGIE_TOKEN` says so instead of re-keying the fleet
+  in silence. It comes back on the token it had stored before the variable was
+  adopted, so every machine is refused — and the failure used to look like a
+  network or certificate problem (#759).
 - `n` opens the session that is calling even when hiding ended sessions would
   keep it off the board. A call outlives the session that raised it, so a caller
   whose process had died was picked by the jump and hidden from it at the same
