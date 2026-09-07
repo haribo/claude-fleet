@@ -51,6 +51,39 @@ After modifying Go code:
 - Restating function/variable names in prose
 - Explaining language features or standard library usage
 
+### An invariant is a claim, and a claim can go on being read after it stops being true
+
+An invariant in a comment is the one kind of comment a later reader *acts* on: it
+is there to tell them whether their change is safe. Nothing checks it, so a
+change that makes it false leaves it in place, stating the opposite of the code
+with an argument attached.
+
+That is not hypothetical here. `n` opened the wrong session (#758) because the
+comment above it said the filter was the only thing that could hide a caller —
+written three days earlier, true of the case it was written for, false of
+another, and believed. A second one lived in a test file (#765), where a claim
+reads as verified.
+
+So, in order, and only falling to the next when the one above is impossible:
+
+1. **Remove the possibility.** If the mistake cannot be written, no one has to
+   remember not to write it. `LeaseHolder` left the server's `Store` interface
+   for this reason (#774): the read-then-write it replaced now fails to compile
+   rather than fails a review.
+2. **Make it a test.** A property stated in a guard fails on its own when it
+   stops holding — the only protection that does not depend on someone
+   re-reading. #765 moved one from argued to checked, and it is the only one of
+   the five that cannot come back.
+3. **Then write the comment**, and have it point at what checks it.
+
+A comment that states a property of the code and points at nothing is a claim
+nobody is keeping. Prefer recording the *decision* and its issue number — what
+was chosen and why — over describing behaviour that the next change can falsify.
+
+This does not make anything impossible; it is a rule and it depends on the same
+vigilance as the others. Only the first item above removes that dependency, and
+it applies only where there is a door to close.
+
 ## Architecture
 
 Two binaries share code through `internal/`. The split is enforced by imports:
