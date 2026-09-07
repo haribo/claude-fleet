@@ -9,6 +9,12 @@ file is the single source of truth, not a second narrative.
 
 ## [Unreleased]
 
+### Fixed
+
+- A retention setting the daemon fails to read no longer deletes sessions. A
+  failed read was treated as "nothing chosen", so it pruned on the default and
+  then wrote that default over an operator's `keep everything` (#777).
+
 ## [0.13.1] - 2026-09-07
 
 ### Fixed
