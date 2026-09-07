@@ -41,10 +41,13 @@ func runServe(args []string) int {
 	}
 	defer func() { _ = st.Close() }()
 
-	token, err := resolveToken(context.Background(), st)
+	token, warning, err := resolveToken(context.Background(), st)
 	if err != nil {
 		log.Error("resolving token", "error", err)
 		return 1
+	}
+	if warning != "" {
+		log.Warn(warning)
 	}
 
 	// Bind up front so a failure (e.g. port already in use) is reported before
@@ -246,13 +249,37 @@ func pruneLoop(st *store.Store, defaultRetention time.Duration, log *slog.Logger
 // rather than a convenience (#465).
 const tokenEnv = "VIGIE_TOKEN"
 
-// resolveToken returns the auth token: $VIGIE_TOKEN, else the value persisted in
+// reKeyWarning is what the daemon says when the fingerprint contradicts the token
+// it is about to serve on: the fleet has just been re-keyed, and every machine
+// configured with the previous secret will be refused.
+//
+// It names the situation and the two ways out, and carries no token — this goes to
+// a log (docs/design/token-continuity.md § 3).
+const reKeyWarning = "the stored token is not the one this daemon last ran with; " +
+	"serving on the stored token, so machines configured with the previous one will be refused. " +
+	"Set " + tokenEnv + " again to keep it, or run `vigied token` to read the one now in use."
+
+// resolveToken returns the auth token — $VIGIE_TOKEN, else the value persisted in
 // the store, else a freshly generated one (persisted and printed so the operator
-// can share it).
+// can share it) — and what the operator has to be told about the choice. The
+// warning is empty when there is nothing to say.
 //
 // The environment wins over the stored value on purpose: a token the operator set
 // explicitly should beat one the daemon persisted for itself.
-func resolveToken(ctx context.Context, st *store.Store) (string, error) {
+//
+// Two secrets coexist the moment an operator adopts the variable: the one they
+// set, and the one the daemon generated for itself earlier and still holds — a
+// daemon given the variable persists nothing, deliberately. Taking the variable
+// back out therefore re-keys the fleet, and the daemon used to do it in silence:
+// every machine refused, and a failure that looks like a network or a certificate
+// problem (#759).
+//
+// It still serves, rather than refusing to start. `vigied token` reads the same
+// evidence and refuses, and the two are right to differ: that command is asked
+// what to hand the machines, where a confident wrong answer is worse than none,
+// while a daemon that will not start takes down the sessions that were reporting
+// fine (docs/design/token-continuity.md § 2).
+func resolveToken(ctx context.Context, st *store.Store) (token, warning string, err error) {
 	if env := os.Getenv(tokenEnv); env != "" {
 		// Record which token is in use, without recording the token. `vigied token`
 		// reads this to tell a live stored token from a leftover: a value generated
@@ -260,25 +287,39 @@ func resolveToken(ctx context.Context, st *store.Store) (string, error) {
 		// used it hands the operator a secret their machines will be refused for
 		// (#720). Best-effort — failing to note it must not stop the daemon serving.
 		_ = st.SetMeta(ctx, tokenFingerprintKey, fingerprint(env))
-		return env, nil
+		return env, "", nil
 	}
-	if v, ok, err := st.GetMeta(ctx, "token"); err != nil {
-		return "", err
-	} else if ok {
+	v, ok, err := st.GetMeta(ctx, "token")
+	if err != nil {
+		return "", "", err
+	}
+	// An empty stored value is not a token: Go's constant-time comparison reports
+	// two empty strings as equal, so serving on one authenticates any request whose
+	// header is exactly "Authorization: Bearer " — the whole API to whoever can
+	// reach the port. `vigied token` already refuses it; nothing should be able to
+	// reach this state, and saying so costs one condition (§ 4).
+	if ok && v != "" {
+		fp, hasFP, err := st.GetMeta(ctx, tokenFingerprintKey)
+		if err != nil {
+			return "", "", err
+		}
+		if hasFP && fp != "" && fp != fingerprint(v) {
+			warning = reKeyWarning
+		}
 		_ = st.SetMeta(ctx, tokenFingerprintKey, fingerprint(v))
-		return v, nil
+		return v, warning, nil
 	}
 
-	token, err := generateToken()
+	fresh, err := generateToken()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	if err := st.SetMeta(ctx, "token", token); err != nil {
-		return "", err
+	if err := st.SetMeta(ctx, "token", fresh); err != nil {
+		return "", "", err
 	}
-	_ = st.SetMeta(ctx, tokenFingerprintKey, fingerprint(token))
-	fmt.Fprintf(os.Stderr, "generated vigie token: %s\n", token)
-	return token, nil
+	_ = st.SetMeta(ctx, tokenFingerprintKey, fingerprint(fresh))
+	fmt.Fprintf(os.Stderr, "generated vigie token: %s\n", fresh)
+	return fresh, "", nil
 }
 
 func generateToken() (string, error) {

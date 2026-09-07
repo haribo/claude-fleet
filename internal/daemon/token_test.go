@@ -31,7 +31,7 @@ func TestResolveToken(t *testing.T) {
 	if err := st0.SetMeta(ctx, "token", "stored-tok"); err != nil {
 		t.Fatal(err)
 	}
-	if tok, err := resolveToken(ctx, st0); err != nil || tok != "env-tok" {
+	if tok, _, err := resolveToken(ctx, st0); err != nil || tok != "env-tok" {
 		t.Errorf("env should win: %q, %v", tok, err)
 	}
 	// The stored token wins when there is no env.
@@ -40,16 +40,16 @@ func TestResolveToken(t *testing.T) {
 	if err := st.SetMeta(ctx, "token", "meta-tok"); err != nil {
 		t.Fatal(err)
 	}
-	if tok, err := resolveToken(ctx, st); err != nil || tok != "meta-tok" {
+	if tok, _, err := resolveToken(ctx, st); err != nil || tok != "meta-tok" {
 		t.Errorf("stored token should win: %q, %v", tok, err)
 	}
 	// Otherwise a token is generated and persisted, so it is stable across runs.
 	st2 := newStore()
-	tok1, err := resolveToken(ctx, st2)
+	tok1, _, err := resolveToken(ctx, st2)
 	if err != nil || len(tok1) != 64 { // 32 random bytes, hex-encoded
 		t.Fatalf("generated token = %q (len %d), %v", tok1, len(tok1), err)
 	}
-	if tok2, _ := resolveToken(ctx, st2); tok2 != tok1 {
+	if tok2, _, _ := resolveToken(ctx, st2); tok2 != tok1 {
 		t.Errorf("generated token not persisted: %q != %q", tok2, tok1)
 	}
 
@@ -59,7 +59,7 @@ func TestResolveToken(t *testing.T) {
 	if err := st3.SetMeta(ctx, "token", "kept-tok"); err != nil {
 		t.Fatal(err)
 	}
-	if tok, err := resolveToken(ctx, st3); err != nil || tok != "kept-tok" {
+	if tok, _, err := resolveToken(ctx, st3); err != nil || tok != "kept-tok" {
 		t.Errorf("FLEET_TOKEN is no longer read: %q, %v", tok, err)
 	}
 }

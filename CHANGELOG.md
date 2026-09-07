@@ -9,6 +9,30 @@ file is the single source of truth, not a second narrative.
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-09-07
+
+### Fixed
+
+- A report that carries no timestamp no longer lands its token growth on today.
+  The day figures are never recomputed, so one attributed to the wrong day stayed
+  wrong; the growth is now counted by the next report that names a day (#768).
+
+- An end time recorded after a session was already over now reaches an open
+  dashboard, instead of waiting for a manual reload (#765).
+
+- An open session detail in the browser follows the session. It kept the state it
+  was opened with, so a session you opened because it was waiting still said
+  `waiting` after you had answered it (#764).
+
+- A daemon restarted without `VIGIE_TOKEN` says so instead of re-keying the fleet
+  in silence. It comes back on the token it had stored before the variable was
+  adopted, so every machine is refused — and the failure used to look like a
+  network or certificate problem (#759).
+- `n` opens the session that is calling even when hiding ended sessions would
+  keep it off the board. A call outlives the session that raised it, so a caller
+  whose process had died was picked by the jump and hidden from it at the same
+  time — and the panel opened on another session (#758).
+
 ## [0.13.0] - 2026-09-06
 
 ### Changed
@@ -690,7 +714,8 @@ across machines — it reads and reports session state; it never drives a sessio
 - The API binds `127.0.0.1` by default; every `/api/*` route is behind a
   constant-time shared-token check; request bodies are size-capped.
 
-[Unreleased]: https://github.com/haribo/claude-vigie/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/haribo/claude-vigie/compare/v0.13.1...HEAD
+[0.13.1]: https://github.com/haribo/claude-vigie/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/haribo/claude-vigie/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/haribo/claude-vigie/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/haribo/claude-vigie/compare/v0.10.0...v0.11.0

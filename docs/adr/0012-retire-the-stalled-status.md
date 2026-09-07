@@ -96,8 +96,14 @@ The enum being closed is what makes removing a member an ADR rather than a commi
   honest through the change.
 - **Stored history keeps the word.** Rows and events written before this release
   may carry `stalled`. Clients must not break on a status they no longer know —
-  the vocabulary's "unrecognised degrades to idle" rule already covers it, and it
+  the vocabulary's rule for an unrecognised status already covers it, and it
   should be tested rather than assumed.
+
+  *Clarification (#719, after this ADR was accepted):* that rule said an
+  unrecognised status **degrades to `idle`**, and it was wrong in the way this
+  ADR cares about — a row stored as `stalled` was shown resting, which is a
+  different claim about the session, not a missing one. It now degrades to
+  `unknown`: drawn neutrally, never relabelled as another status.
 
 ## Alternatives considered
 

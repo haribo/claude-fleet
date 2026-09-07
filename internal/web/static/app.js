@@ -437,7 +437,7 @@ function renderSettings() {
   }).join("");
   $("tab-settings").innerHTML = `
     <div class="settings">
-      <div class="set-note"><span>ℹ</span><span><b>Server</b> settings are read-only here — claude-vigie is observe-only; change them on the daemon. Your <b>column layout</b> and sort are saved in this browser.</span></div>
+      <div class="set-note"><span>ℹ</span><span><b>Server</b> settings are read-only here — this dashboard reads the fleet, it does not change it; use the <code>vigie</code> terminal client to change them. Your <b>column layout</b> and sort are saved in this browser.</span></div>
       <div class="set-row"><span class="k">Server<small>the daemon this dashboard is served by</small></span><span class="v">${esc(location.origin)}</span></div>
       <div class="set-row"><span class="k">Session retention<small>how long closed sessions are kept</small></span><span class="v">${esc(retention)}</span></div>
       <div class="set-row"><span class="k">Platform status<small>polled from status.claude.com</small></span><span class="v ${pcls === "ok" ? "ok" : ""}">● ${esc(ptxt)}</span></div>
@@ -521,9 +521,17 @@ function watcherHtml() {
 
 // ---------- detail ----------
 function field(k, v, cls = "") { return `<div class="field"><span class="k">${esc(k)}</span><span class="v ${cls}">${v}</span></div>`; }
-function openDetail(id) {
+// renderDetail paints the panel for one session.
+//
+// Split out of openDetail because a refresh has to repaint without re-opening:
+// opening scrolls the page to the top, and doing that every five seconds would
+// take the page from under an operator reading a long panel (#764).
+//
+// A session that has left the fleet — pruned by retention — leaves the panel
+// showing its last known state. That is what it is, and closing the panel under
+// the operator to say so would be a different decision than this one.
+function renderDetail(id) {
   const s = byId.get(id); if (!s) return;
-  detailId = id;
   const st = statusClass(s.status);
   const u = s.usage || {};
   const waiting = s.status === "waiting";
@@ -559,10 +567,17 @@ function openDetail(id) {
         <div class="tok total"><span class="k">Total</span><span>${humanTokens(totalTokens(u))}</span></div>
         <h3>Activity</h3><div class="act-block st-${st}">${spark}</div></div>
     </div>`;
+  $("back").addEventListener("click", closeDetail);
+}
+
+// openDetail shows the panel for id and puts the operator at the top of it.
+function openDetail(id) {
+  if (!byId.has(id)) return;
+  detailId = id;
+  renderDetail(id);
   $("tab-" + activeTab).hidden = true;
   $("view-detail").hidden = false;
   syncFilterBar();
-  $("back").addEventListener("click", closeDetail);
   window.scrollTo(0, 0);
 }
 function closeDetail() { detailId = null; $("view-detail").hidden = true; $("tab-" + activeTab).hidden = false; syncFilterBar(); window.scrollTo(0, 0); }
@@ -573,7 +588,11 @@ async function loadSessions() {
   sessions = Array.isArray(data) ? data : [];
   byId = new Map(sessions.map((s) => [s.id, s]));
   renderTabs();
+  // A panel left open follows its session. It used to keep the HTML it was
+  // opened with — the session could finish its turn, start waiting, or die with
+  // its machine, and the panel went on showing the moment it opened (#764).
   if (activeTab === "sessions" && !detailId) renderSessions();
+  else if (detailId) renderDetail(detailId);
   if (activeTab === "machines") renderMachines();
   if (usage || platform) renderBottom(); // the hidden count lives there now (#548)
   noteAttention();

@@ -244,9 +244,10 @@ export function hiddenByIdle(s, afterMs, nowMs) {
   return nowMs - t > afterMs;
 }
 
-// STATUSES is the session vocabulary, most-active first. app.js styles a status
-// only if it is in here and falls back to `idle` otherwise, so a status missing
-// from the list is displayed as something it is not (#423).
+// STATUSES is the session vocabulary, most-active first. A status missing from
+// the list is one this build cannot style, and `statusClass` below says what
+// happens then — it used to be relabelled `idle` and is now drawn neutrally,
+// keeping its own name (#423, #719).
 //
 // It lives here rather than in app.js so both this client and its test suite can
 // name it: a Go test used to pull the literal out of app.js with a regular
@@ -348,12 +349,14 @@ export function groupSessions(list, mode) {
 }
 
 // The statuses that call for the operator: the session is blocked and needs a
-// human. Kept identical to internal/status.Attention — a Go test reads this
-// literal and fails on drift, because a dashboard that disagrees with the TUI
-// about when to interrupt you is worse than one that never tries (#466).
+// human.
 //
-// The dashboard used to decide for itself, and dropped `error`: a session stuck
-// on a 529 was drawn like any working one (#538).
+// There is no list here to keep in step. The daemon decides it and ships the
+// verdict (ADR-0011, #617), so this reads `session.attention` and cannot hold an
+// opinion of its own. It used to hold one, and dropped `error`: a session stuck
+// on a 529 was drawn like any working one (#538). A dashboard that disagrees with
+// the terminal about when to interrupt you is worse than one that never tries
+// (#466).
 // needsAttention covers both reasons to interrupt: a status that means the
 // session is blocked, and a call the session raised for itself (ADR-0010). The
 // call is not a status — it rides alongside one — so anything deciding whether to
