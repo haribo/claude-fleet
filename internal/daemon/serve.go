@@ -170,9 +170,22 @@ type retention struct {
 	warning string
 }
 
-func decideRetention(stored string, storedOK bool, def time.Duration) retention {
+func decideRetention(stored string, storedOK bool, readErr error, def time.Duration) retention {
 	window := def
 	switch {
+	case readErr != nil:
+		// A read that did not happen is not an answer. `GetMeta` reports a failed
+		// read with the same `ok=false` as an absent key, and treating the two
+		// alike deleted sessions on a setting nobody had managed to read — then
+		// wrote the default over the operator's choice on the next start, after
+		// which the setting really is the default and nothing is left to notice
+		// (#777).
+		//
+		// #656 is the same shape one door along: its fix rests on absent and empty
+		// being distinguishable, and they stop being so the moment the read fails.
+		// Deleting is the one outcome that cannot be undone; skipping a round costs
+		// an hour of retention.
+		return retention{warning: "the retention setting could not be read (" + readErr.Error() + "); nothing pruned this round"}
 	case !storedOK:
 		// Nothing stored yet: the default governs.
 	case stored == "":
@@ -207,9 +220,18 @@ func seedRetention(ctx context.Context, st *store.Store, def time.Duration) {
 	if def <= 0 {
 		return
 	}
-	if _, ok, _ := st.GetMeta(ctx, server.RetentionMetaKey); !ok {
+	_, ok, err := st.GetMeta(ctx, server.RetentionMetaKey)
+	if shouldSeed(ok, err) {
 		_ = st.SetMeta(ctx, server.RetentionMetaKey, def.String())
 	}
+}
+
+// shouldSeed reports whether the default may be written. Only for a key that is
+// genuinely absent: a read that failed says nothing about what is stored, and
+// writing on it overwrites the operator's choice with the default — the outcome
+// #656 was filed for, reached without anyone deciding anything (#777).
+func shouldSeed(storedOK bool, readErr error) bool {
+	return readErr == nil && !storedOK
 }
 
 func pruneLoop(st *store.Store, defaultRetention time.Duration, log *slog.Logger) {
@@ -217,8 +239,8 @@ func pruneLoop(st *store.Store, defaultRetention time.Duration, log *slog.Logger
 	seedRetention(ctx, st, defaultRetention)
 	lastWarning := ""
 	prune := func() {
-		v, ok, _ := st.GetMeta(ctx, server.RetentionMetaKey)
-		r := decideRetention(v, ok, defaultRetention)
+		v, ok, err := st.GetMeta(ctx, server.RetentionMetaKey)
+		r := decideRetention(v, ok, err, defaultRetention)
 		if r.warning != "" && r.warning != lastWarning {
 			log.Warn("retention", "problem", r.warning) // announce a transition only
 		}
