@@ -87,3 +87,57 @@ func (s *Store) ReleaseLease(ctx context.Context, holder string) error {
 	}
 	return nil
 }
+
+// SetMetaIfLeaseHolder writes value at key only while holder still holds the
+// usage lease, in one transaction, and reports who holds it. written is false
+// when the lease has moved on or expired — an ordinary answer, not a failure.
+//
+// The daemon used to read the holder and write the snapshot as two separate
+// operations. A machine whose lease lapsed between the two could still write,
+// landing the reading it had fetched minutes earlier on top of a fresher one from
+// the machine that had taken over. The snapshot is never fabricated — every
+// machine reads the same account — but it stopped being the latest, and the
+// gauges carry its age, so an operator could be shown a figure older than one the
+// daemon already had (#774).
+//
+// The transaction takes the write lock at BEGIN (#779), so the check and the
+// write cannot be separated by another machine's acquisition.
+func (s *Store) SetMetaIfLeaseHolder(ctx context.Context, key, value, holder string, now time.Time) (current string, written bool, err error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return "", false, fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var curHolder, curExpiry string
+	err = tx.QueryRowContext(ctx, `SELECT holder, expires_at FROM usage_lease WHERE id = 1`).
+		Scan(&curHolder, &curExpiry)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return "", false, fmt.Errorf("reading lease: %w", err)
+	}
+	// An unparsable or elapsed expiry belongs to nobody, the same reading
+	// LeaseHolder takes: the lease is free, so nobody is writing on it.
+	if err == nil {
+		if exp, perr := time.Parse(time.RFC3339, curExpiry); perr != nil || !now.Before(exp) {
+			curHolder = ""
+		}
+	} else {
+		curHolder = ""
+	}
+	if curHolder == "" || curHolder != holder {
+		if cerr := tx.Commit(); cerr != nil {
+			return "", false, fmt.Errorf("commit: %w", cerr)
+		}
+		return curHolder, false, nil
+	}
+
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO meta (key, value) VALUES (?, ?)
+		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key, value); err != nil {
+		return "", false, fmt.Errorf("setting meta %s: %w", key, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return "", false, fmt.Errorf("commit: %w", err)
+	}
+	return curHolder, true, nil
+}

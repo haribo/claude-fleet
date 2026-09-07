@@ -11,6 +11,10 @@ file is the single source of truth, not a second narrative.
 
 ### Fixed
 
+- The usage gauges can no longer go backwards. A machine whose turn to fetch had
+  lapsed could still post the figures it had read minutes earlier, landing them
+  on top of fresher ones (#774).
+
 - A machine that loses the race for the usage lease is told so, instead of
   getting an error it cannot tell from a broken database (#779).
 
