@@ -58,21 +58,10 @@ func (s *Server) handlePostUsage(w http.ResponseWriter, r *http.Request) {
 	if s.decodeBody(w, r, &rep) != "" {
 		return
 	}
-	holder, held, err := s.store.LeaseHolder(r.Context(), s.now())
-	if err != nil {
-		s.log.Error("reading lease", "error", err)
-		s.writeError(w, http.StatusInternalServerError, "internal error")
-		return
-	}
-	if !held || rep.Holder == "" || rep.Holder != holder {
-		s.log.Warn("refusing usage from a machine that does not hold the lease",
-			"from", rep.Holder, "holder", holder)
-		s.writeError(w, http.StatusConflict, "the usage lease is held by another machine")
-		return
-	}
 	// Percentages, not arbitrary numbers: a negative or >100 figure renders as a
 	// gauge that means nothing, and the client has no way to tell it apart from a
-	// real one.
+	// real one. Checked before the lease now: a malformed payload is the caller's
+	// to fix whoever holds the lease, and refusing it costs nothing.
 	if !isPercent(rep.FiveHourPct) || !isPercent(rep.SevenDayPct) {
 		s.writeError(w, http.StatusBadRequest, "usage percentages must be between 0 and 100")
 		return
@@ -82,9 +71,22 @@ func (s *Server) handlePostUsage(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
-	if err := s.store.SetMeta(r.Context(), usageMetaKey, string(blob)); err != nil {
+	// The lease is checked *by* the write, not before it. An empty holder is
+	// refused by the same rule rather than by a check of its own: it holds no
+	// lease, whoever it is. Read then write left a
+	// gap a machine could lose its lease in, and the reading it had fetched
+	// minutes earlier then landed on top of a fresher one from whoever had taken
+	// over (#774).
+	holder, written, err := s.store.SetMetaIfLeaseHolder(r.Context(), usageMetaKey, string(blob), rep.Holder, s.now())
+	if err != nil {
 		s.log.Error("storing usage", "error", err)
 		s.writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	if !written {
+		s.log.Warn("refusing usage from a machine that does not hold the lease",
+			"from", rep.Holder, "holder", holder)
+		s.writeError(w, http.StatusConflict, "the usage lease is held by another machine")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
