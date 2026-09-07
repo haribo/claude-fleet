@@ -69,32 +69,37 @@ func TestPragmasApplyToEveryConnection(t *testing.T) {
 	t.Cleanup(func() { _ = st.Close() })
 
 	// Force the pool to open several distinct connections simultaneously by
-	// holding open transactions, then check each one's pragmas.
+	// holding them, then check each one's pragmas.
+	//
+	// Held as connections rather than as open transactions: since #779 a
+	// transaction takes the write lock at BEGIN, so four held at once serialize —
+	// a situation nothing in the daemon creates and this test used to invent. The
+	// sibling test below has always used connections for the same purpose.
 	const conns = 4
 	ctx := context.Background()
-	var txs []*sql.Tx
+	var held []*sql.Conn
 	for i := 0; i < conns; i++ {
-		tx, err := st.db.BeginTx(ctx, nil)
+		c, err := st.db.Conn(ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
-		txs = append(txs, tx)
+		held = append(held, c)
 	}
 	t.Cleanup(func() {
-		for _, tx := range txs {
-			_ = tx.Rollback()
+		for _, c := range held {
+			_ = c.Close()
 		}
 	})
-	for i, tx := range txs {
+	for i, c := range held {
 		var busy int
-		if err := tx.QueryRowContext(ctx, "PRAGMA busy_timeout").Scan(&busy); err != nil {
+		if err := c.QueryRowContext(ctx, "PRAGMA busy_timeout").Scan(&busy); err != nil {
 			t.Fatalf("conn %d: reading busy_timeout: %v", i, err)
 		}
 		if busy != 5000 {
 			t.Errorf("conn %d: busy_timeout = %d, want 5000 (pragma missing on this connection)", i, busy)
 		}
 		var mode string
-		if err := tx.QueryRowContext(ctx, "PRAGMA journal_mode").Scan(&mode); err != nil {
+		if err := c.QueryRowContext(ctx, "PRAGMA journal_mode").Scan(&mode); err != nil {
 			t.Fatalf("conn %d: reading journal_mode: %v", i, err)
 		}
 		if mode != "wal" {

@@ -11,6 +11,9 @@ file is the single source of truth, not a second narrative.
 
 ### Fixed
 
+- A machine that loses the race for the usage lease is told so, instead of
+  getting an error it cannot tell from a broken database (#779).
+
 - A retention setting the daemon fails to read no longer deletes sessions. A
   failed read was treated as "nothing chosen", so it pruned on the default and
   then wrote that default over an operator's `keep everything` (#777).
