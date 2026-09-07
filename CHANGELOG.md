@@ -11,6 +11,10 @@ file is the single source of truth, not a second narrative.
 
 ### Fixed
 
+- A report that carries no timestamp no longer lands its token growth on today.
+  The day figures are never recomputed, so one attributed to the wrong day stayed
+  wrong; the growth is now counted by the next report that names a day (#768).
+
 - An end time recorded after a session was already over now reaches an open
   dashboard, instead of waiting for a manual reload (#765).
 

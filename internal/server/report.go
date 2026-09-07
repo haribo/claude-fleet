@@ -106,8 +106,11 @@ func (s *Server) rollupTokens(ctx context.Context, _, sess store.Session, req ap
 	// advanced over a failed write said the growth had been counted when it had
 	// not — permanently, since stats_daily is never recomputed. Together, a failure
 	// leaves the mark where it was and the next report counts the same growth.
-	delta, err := s.store.RollUpTokens(ctx, sess.ID, sess.Usage.OutputTokens,
-		dayOf(req.Timestamp, s.now()), sess.Model)
+	day := dayOf(req.Timestamp)
+	if day == "" {
+		return // no day to attribute it to; the mark holds it for the next report (#768)
+	}
+	delta, err := s.store.RollUpTokens(ctx, sess.ID, sess.Usage.OutputTokens, day, sess.Model)
 	if err != nil {
 		s.log.Error("rolling up tokens", "error", err, "session", sess.ID)
 		return
@@ -136,8 +139,16 @@ func (s *Server) closeStatusInterval(ctx context.Context, sess store.Session, re
 			return store.StatusInterval{} // first event: nothing to close
 		}
 		// Attribute the whole interval to its start day (no midnight split in v1).
+		//
+		// A previous event naming no instant yields no day, and the guard is
+		// explicit rather than left to `secondsBetween` also returning 0 for it:
+		// two functions agreeing by coincidence is not an invariant (#768).
+		day := dayOf(last.CreatedAt)
+		if day == "" {
+			return store.StatusInterval{}
+		}
 		return store.StatusInterval{
-			Day:    dayOf(last.CreatedAt, s.now()),
+			Day:    day,
 			Model:  sess.Model,
 			Status: last.Status,
 			Secs:   secondsBetween(last.CreatedAt, req.Timestamp),
@@ -148,12 +159,24 @@ func (s *Server) closeStatusInterval(ctx context.Context, sess store.Session, re
 	}
 }
 
-// dayOf returns the UTC calendar day (YYYY-MM-DD) of an RFC3339 timestamp,
-// falling back to the current day when it cannot be parsed.
-func dayOf(ts string, now time.Time) string {
+// dayOf returns the UTC calendar day (YYYY-MM-DD) of an RFC3339 timestamp, or ""
+// when the timestamp names no instant.
+//
+// It used to fall back to the current day. `rejectReport` refuses a malformed
+// timestamp and accepts an absent one — absent is not malformed, and it renders
+// as a dash — so a report with no timestamp had its growth attributed to *today*,
+// in a table that is never recomputed. The comment listing the harms a bad
+// timestamp does named this one, and the fallback did it for the input that was
+// allowed through (#768).
+//
+// Declining costs nothing. The mark means "already in stats_daily" (#669), so a
+// rollup not made leaves it where it was and the next report carrying an instant
+// counts the whole growth — on the day *that* report names, which is the closest
+// thing to true available.
+func dayOf(ts string) string {
 	t, err := time.Parse(time.RFC3339, ts)
 	if err != nil {
-		t = now
+		return ""
 	}
 	return t.UTC().Format("2006-01-02")
 }
