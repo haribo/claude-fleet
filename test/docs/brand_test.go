@@ -84,7 +84,15 @@ func registeredMetrics(t *testing.T) map[string]bool {
 // carried over (adoptLegacyKey), and the old names legitimately remain in that
 // migration.
 func TestTheShippedFrontEndsCarryNoOldBrand(t *testing.T) {
-	brand := regexp.MustCompile(`\bFleet[A-Z]|\bcf-[a-z]|"cf_[a-z]`)
+	// `Fleet` on its own, not only glued to a capital. The narrower pattern found
+	// `FleetIndicator` and walked straight past `Fleet server` — the preferences
+	// row an operator reads while setting the extension up, and the schema summary
+	// under it (#766). A guard that passes on the thing it was written for is worse
+	// than no guard, because it is read as evidence.
+	//
+	// The common noun is safe: `fleet` is written lowercase throughout, and the
+	// capital only appears where the old product name was.
+	brand := regexp.MustCompile(`\bFleet\b|\bFleet[A-Z]|\bcf-[a-z]|"cf_[a-z]`)
 	// The one legitimate mention: the migration that reads the old keys once.
 	legacy := regexp.MustCompile(`adoptLegacyKey\(localStorage, "cf_[a-z]+"`)
 
@@ -93,6 +101,8 @@ func TestTheShippedFrontEndsCarryNoOldBrand(t *testing.T) {
 		"../../gnome-extension/prefs.js",
 		"../../gnome-extension/lib.js",
 		"../../gnome-extension/stylesheet.css",
+		"../../gnome-extension/metadata.json",
+		"../../gnome-extension/schemas/org.gnome.shell.extensions.claude-vigie.gschema.xml",
 		"../../internal/web/static/app.js",
 		"../../internal/web/static/lib.js",
 		"../../internal/web/static/app.css",

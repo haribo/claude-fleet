@@ -12,7 +12,7 @@ export default class VigiePreferences extends ExtensionPreferences {
 
         const page = new Adw.PreferencesPage();
         const group = new Adw.PreferencesGroup({
-            title: 'Fleet server',
+            title: 'Server',
             description: 'The vigied server this indicator reads from (read-only).',
         });
         page.add(group);

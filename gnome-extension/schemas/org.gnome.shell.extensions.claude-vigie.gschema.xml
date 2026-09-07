@@ -4,7 +4,7 @@
           path="/org.gnome.shell.extensions.claude-vigie/">
     <key name="server-url" type="s">
       <default>"http://localhost:8080"</default>
-      <summary>Fleet server URL</summary>
+      <summary>Server URL</summary>
       <description>Base URL of the vigied server, e.g. https://fleet.example.com</description>
     </key>
     <key name="token" type="s">
