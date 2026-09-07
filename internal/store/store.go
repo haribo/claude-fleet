@@ -96,6 +96,24 @@ func dsn(path string) string {
 	q.Add("_pragma", "busy_timeout(5000)")
 	q.Add("_pragma", "foreign_keys(on)")
 	q.Add("_pragma", "journal_mode(WAL)")
+	// Every transaction takes the write lock at BEGIN rather than at its first
+	// write. Three of them read, decide, then write — the token rollup, the status
+	// interval, the usage lease — and all three must never count twice.
+	//
+	// Deferred, that property held by accident of the engine: a transaction that
+	// read before another committed is *refused* when it writes
+	// (SQLITE_BUSY_SNAPSHOT), so the outcome was an under-count rather than an
+	// inflation. Right direction, nobody's decision — a retry loop or a driver
+	// change would have lowered the bar in silence, and `stats_daily` is never
+	// recomputed (#779).
+	//
+	// It costs no concurrency: SQLite has one writer at a time either way. It only
+	// moves the wait earlier, so a second writer waits instead of doing work it
+	// will have to throw away. Measured over 200 contended rounds: contention
+	// errors went from a few percent of rounds to none, and a machine losing the
+	// lease race now gets `acquired: false` — the answer a lease exists to give —
+	// instead of an error it cannot tell from a broken database.
+	q.Set("_txlock", "immediate")
 	return "file:" + path + "?" + q.Encode()
 }
 
