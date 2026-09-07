@@ -437,7 +437,7 @@ function renderSettings() {
   }).join("");
   $("tab-settings").innerHTML = `
     <div class="settings">
-      <div class="set-note"><span>ℹ</span><span><b>Server</b> settings are read-only here — claude-vigie is observe-only; change them on the daemon. Your <b>column layout</b> and sort are saved in this browser.</span></div>
+      <div class="set-note"><span>ℹ</span><span><b>Server</b> settings are read-only here — this dashboard reads the fleet, it does not change it; use the <code>vigie</code> terminal client to change them. Your <b>column layout</b> and sort are saved in this browser.</span></div>
       <div class="set-row"><span class="k">Server<small>the daemon this dashboard is served by</small></span><span class="v">${esc(location.origin)}</span></div>
       <div class="set-row"><span class="k">Session retention<small>how long closed sessions are kept</small></span><span class="v">${esc(retention)}</span></div>
       <div class="set-row"><span class="k">Platform status<small>polled from status.claude.com</small></span><span class="v ${pcls === "ok" ? "ok" : ""}">● ${esc(ptxt)}</span></div>
