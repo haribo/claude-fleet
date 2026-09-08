@@ -11,7 +11,7 @@ import {
   adoptLegacyKey, needsAttention, attentionCount, streamIsSilent, REFRESH_MS,
   readWatcher, fleetAlarm, fleetAlarmDetail, watcherCell,
   matchesFilter, GROUP_MODES, groupSessions, contextKnown, contextPct, contextCell, migrateV1Columns,
-  IDLE_PRESETS_MS, idleLabel, hiddenByIdle, STATUSES, SORT_COMPARATORS, DEFAULT_SORT, bodyFor,
+  IDLE_PRESETS_MS, idleLabel, hiddenByIdle, STATUSES, SORT_COMPARATORS, DEFAULT_SORT, bodyFor, statusBreakdown,
   boardState, emptyMessage, attentionIds, enteredAttention, nextAttention, statusClass,
 } from "./lib.js";
 
@@ -317,7 +317,7 @@ function renderMachines() {
     if (ageSec(s.last_seen_at) < ageSec(a.seen)) a.seen = s.last_seen_at;
   });
   const cards = Object.values(m).sort((a, b) => b.n - a.n).map((a) => {
-    const brk = STATUSES.filter((k) => a[k]).map((k) => `<span class="b st-${k}"><span class="dot"></span>${a[k]} <small>${k}</small></span>`).join("");
+    const brk = statusBreakdown(a).map((r) => `<span class="b st-${r.cls}"><span class="dot"></span>${r.n} <small>${esc(r.status)}</small></span>`).join("");
     const wv = watcher && watcher.versions && watcher.versions[a.name];
     const wver = wv && wv.version ? wv.version : "—";
     // Each machine's own verdict, beside the version it already showed. "⚠ time?"
