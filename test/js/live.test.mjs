@@ -322,15 +322,6 @@ test("typing in the filter narrows the table", async () => {
   assert.ok(!html.includes("data-pipe"));
 });
 
-test("the rc token reaches the table too", async () => {
-  const h = harness({ sessions: FLEET3 });
-  await h.boot();
-  await h.fire("filter-input", "input", { target: { value: "rc" } });
-  const html = h.lastTable();
-  assert.match(html, /data-pipe/, "the only remote-controlled session");
-  assert.ok(!html.includes("api-gateway"));
-});
-
 test("a filter that matches nothing says so instead of looking empty", async () => {
   const h = harness({ sessions: FLEET3 });
   await h.boot();
@@ -480,7 +471,6 @@ test("the summary strip is gone from the dashboard", async () => {
   assert.ok(!html.includes('class="summary"'), "the strip itself");
   assert.ok(!html.includes('class="cnt'), "the status counts — the exact aggregate of the STATUS column");
   assert.ok(!html.includes(">out<"), "the output total");
-  assert.ok(!html.includes(">rc<"), "the rc count");
   assert.ok(!html.includes('class="metric'), "and the scopes it mixed at one visual rank");
 });
 

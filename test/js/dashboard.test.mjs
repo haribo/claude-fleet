@@ -328,18 +328,6 @@ test("the haystack has the same shape as the TUI's", () => {
   assert.equal(sessionHaystack(s), "api-gateway orion-dev gateway main working");
 });
 
-test("rc is a token as a whole pattern, and ordinary text otherwise", () => {
-  const on = { id: "a", machine: "m", status: "idle", remote_control: true };
-  const off = { id: "b", machine: "m", status: "idle", remote_control: false };
-  assert.equal(matchesFilter(on, "rc"), true);
-  assert.equal(matchesFilter(off, "rc"), false, "the token selects, it does not text-match");
-  assert.equal(matchesFilter(on, "RC"), true, "the token is case-insensitive");
-  // As part of a longer pattern it is not the token: it must match the text.
-  const src = { id: "c", machine: "src-tool", status: "idle", remote_control: false };
-  assert.equal(matchesFilter(src, "rct"), true, "`rct` is a subsequence of `src-tool`, not the token");
-  assert.equal(matchesFilter(off, "rct"), false);
-});
-
 test("an empty filter selects everything", () => {
   const s = { id: "a", machine: "m", status: "idle" };
   assert.equal(matchesFilter(s, ""), true);

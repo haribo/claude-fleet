@@ -153,24 +153,3 @@ func TestUsagePercentagesAreBounded(t *testing.T) {
 		t.Errorf("the bounds themselves were refused: %d", code)
 	}
 }
-
-// The dashboard puts remote_url in an href, and HTML escaping does not stop a
-// scheme from being followed. Validated at ingestion, so a bad value never
-// reaches the store and no client has to remember to check.
-func TestOnlyAnHTTPSRemoteURLIsStored(t *testing.T) {
-	for _, c := range []struct {
-		raw  string
-		want string
-	}{
-		{"https://claude.ai/code/abc", "https://claude.ai/code/abc"},
-		{"javascript:alert(1)", ""},
-		{"data:text/html;base64,PHNjcmlwdD4=", ""},
-		{"http://claude.ai/code/abc", ""},
-		{"https://", ""},
-		{"", ""},
-	} {
-		if got := safeRemoteURL(c.raw); got != c.want {
-			t.Errorf("safeRemoteURL(%q) = %q, want %q", c.raw, got, c.want)
-		}
-	}
-}

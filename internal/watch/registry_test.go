@@ -36,13 +36,10 @@ func TestReadRegistry(t *testing.T) {
 	if r.Status != "waiting" || r.WaitingFor != "Allow Bash?" {
 		t.Errorf("s1 status fields = %+v", r)
 	}
-	if r.PID != 4242 || r.ProcStart != 98765 || r.BridgeSessionID != "session_x" {
+	if r.PID != 4242 || r.ProcStart != 98765 {
 		t.Errorf("s1 record = %+v", r)
 	}
-	if r.remoteURL() != "https://claude.ai/code/session_x" {
-		t.Errorf("s1 remoteURL = %q", r.remoteURL())
-	}
-	if m["s2"].Status != "idle" || m["s2"].BridgeSessionID != "" || m["s2"].remoteURL() != "" {
+	if m["s2"].Status != "idle" {
 		t.Errorf("s2 record = %+v", m["s2"])
 	}
 }

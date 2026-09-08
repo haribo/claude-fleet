@@ -80,7 +80,6 @@ func sanitizeSessions(sessions []api.SessionView) []api.SessionView {
 		s.AttentionReason = sanitizeText(s.AttentionReason)
 		s.LastTool = sanitizeText(s.LastTool)
 		s.Detail = sanitizeText(s.Detail)
-		s.RemoteURL = sanitizeText(s.RemoteURL)
 		s.CallMessage = sanitizeText(s.CallMessage)
 		// The derived fields are not clean for being derived: the daemon builds them
 		// out of the same transcript-supplied text (ADR-0011, #618), and they are what

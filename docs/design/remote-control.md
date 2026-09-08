@@ -1,7 +1,16 @@
 # Remote control — Design Specification
 
-**Status:** Accepted. rc is detected and read-only; activation is out of scope
-per [ADR-0005](../adr/0005-observe-only.md).
+**Status:** Deprecated (#789). The detection this specifies no longer
+distinguishes anything: every live session now carries the `bridgeSessionId` it
+keys on, whether or not `/rc` is active, so the feature was removed rather than
+rebuilt on another undocumented field
+([ADR-0014](../adr/0014-retire-remote-control-detection.md)).
+
+Kept as written, because the decision it records was sound for the world it was
+written in — what changed is that world. Nothing below is current behaviour.
+
+*Previously: Accepted. rc is detected and read-only; activation is out of scope
+per [ADR-0005](../adr/0005-observe-only.md).*
 
 Source of truth for what "remote control" (rc) means in vigie and how the
 operator interacts with it — the user-observable behavior, not the code.

@@ -11,23 +11,113 @@
     "this fixture is not the place to discover which."
   ],
   "cases": [
-    { "why": "an empty pattern matches anything", "pattern": "", "text": "web-app", "want": true },
-    { "why": "a plain substring is a subsequence", "pattern": "web", "text": "web-app", "want": true },
-    { "why": "gaps are allowed — the point of the rule", "pattern": "wapp", "text": "web-app", "want": true },
-    { "why": "order is not", "pattern": "appweb", "text": "web-app", "want": false },
-    { "why": "case is ignored in the pattern", "pattern": "WAPP", "text": "web-app", "want": true },
-    { "why": "case is ignored in the text", "pattern": "wapp", "text": "WEB-APP", "want": true },
-    { "why": "a character absent from the text fails the whole match", "pattern": "webz", "text": "web-app", "want": false },
-    { "why": "a pattern longer than the text cannot match", "pattern": "web-application", "text": "web-app", "want": false },
-    { "why": "an exact match", "pattern": "web-app", "text": "web-app", "want": true },
-    { "why": "spaces are ordinary characters and must be matched too", "pattern": "b a", "text": "web app", "want": true },
-    { "why": "a repeated pattern character needs two occurrences", "pattern": "pp", "text": "web-app", "want": true },
-    { "why": "three of them do not exist here", "pattern": "ppp", "text": "web-app", "want": false },
-    { "why": "the empty text matches only the empty pattern", "pattern": "a", "text": "", "want": false },
-    { "why": "a pattern may span two fields of the haystack", "pattern": "appori", "text": "web-app orion-dev", "want": true },
-    { "why": "accented Latin folds the same in both languages", "pattern": "ÉTÉ", "text": "un été chaud", "want": true },
-    { "why": "digits and punctuation are ordinary characters", "pattern": "v2.1", "text": "release v2.1.0", "want": true },
-    { "why": "a status is searchable, it is part of the haystack", "pattern": "wait", "text": "api-gateway orion-dev gw main waiting", "want": true },
-    { "why": "rc is only special as a whole pattern; as text it matches normally", "pattern": "rc", "text": "src-tool", "want": true }
+    {
+      "why": "an empty pattern matches anything",
+      "pattern": "",
+      "text": "web-app",
+      "want": true
+    },
+    {
+      "why": "a plain substring is a subsequence",
+      "pattern": "web",
+      "text": "web-app",
+      "want": true
+    },
+    {
+      "why": "gaps are allowed — the point of the rule",
+      "pattern": "wapp",
+      "text": "web-app",
+      "want": true
+    },
+    {
+      "why": "order is not",
+      "pattern": "appweb",
+      "text": "web-app",
+      "want": false
+    },
+    {
+      "why": "case is ignored in the pattern",
+      "pattern": "WAPP",
+      "text": "web-app",
+      "want": true
+    },
+    {
+      "why": "case is ignored in the text",
+      "pattern": "wapp",
+      "text": "WEB-APP",
+      "want": true
+    },
+    {
+      "why": "a character absent from the text fails the whole match",
+      "pattern": "webz",
+      "text": "web-app",
+      "want": false
+    },
+    {
+      "why": "a pattern longer than the text cannot match",
+      "pattern": "web-application",
+      "text": "web-app",
+      "want": false
+    },
+    {
+      "why": "an exact match",
+      "pattern": "web-app",
+      "text": "web-app",
+      "want": true
+    },
+    {
+      "why": "spaces are ordinary characters and must be matched too",
+      "pattern": "b a",
+      "text": "web app",
+      "want": true
+    },
+    {
+      "why": "a repeated pattern character needs two occurrences",
+      "pattern": "pp",
+      "text": "web-app",
+      "want": true
+    },
+    {
+      "why": "three of them do not exist here",
+      "pattern": "ppp",
+      "text": "web-app",
+      "want": false
+    },
+    {
+      "why": "the empty text matches only the empty pattern",
+      "pattern": "a",
+      "text": "",
+      "want": false
+    },
+    {
+      "why": "a pattern may span two fields of the haystack",
+      "pattern": "appori",
+      "text": "web-app orion-dev",
+      "want": true
+    },
+    {
+      "why": "accented Latin folds the same in both languages",
+      "pattern": "ÉTÉ",
+      "text": "un été chaud",
+      "want": true
+    },
+    {
+      "why": "digits and punctuation are ordinary characters",
+      "pattern": "v2.1",
+      "text": "release v2.1.0",
+      "want": true
+    },
+    {
+      "why": "a status is searchable, it is part of the haystack",
+      "pattern": "wait",
+      "text": "api-gateway orion-dev gw main waiting",
+      "want": true
+    },
+    {
+      "why": "a two-letter pattern matches by subsequence like any other; it was once a reserved token (#789)",
+      "pattern": "rc",
+      "text": "src-tool",
+      "want": true
+    }
   ]
 }

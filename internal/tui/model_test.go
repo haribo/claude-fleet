@@ -295,22 +295,6 @@ func TestStatusRankAndSort(t *testing.T) {
 	}
 }
 
-func TestRCSortAndFilter(t *testing.T) {
-	m := model{sessions: []api.SessionView{
-		{Title: "a", Status: "idle", LastSeenAt: "2026-07-27T10:00:00Z"},
-		{Title: "b", Status: "idle", RemoteControl: true, LastSeenAt: "2026-07-27T09:00:00Z"},
-	}, sess: sessionsView{sortKey: sortRC}}
-	vis := m.visibleSessions()
-	if !vis[0].RemoteControl {
-		t.Errorf("rc sort: first = %q, want the rc-active one", vis[0].Title)
-	}
-	m.sess.filter = "rc"
-	vis = m.visibleSessions()
-	if len(vis) != 1 || !vis[0].RemoteControl {
-		t.Errorf("filter rc = %d rows, want 1 rc-active", len(vis))
-	}
-}
-
 func TestSettingsEdit(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	m := model{tab: tabSettings, prefs: defaultPrefs()}

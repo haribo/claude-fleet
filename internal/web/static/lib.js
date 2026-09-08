@@ -193,7 +193,6 @@ export function sessionHaystack(s) {
 // learns it in one window must find it in the other.
 export function matchesFilter(s, filter) {
   if (!filter) return true;
-  if (filter.toLowerCase() === "rc") return Boolean(s && s.remote_control);
   return fuzzyMatch(filter, sessionHaystack(s));
 }
 
@@ -292,7 +291,6 @@ export const SORT_COMPARATORS = {
   effort: (a, b) => (a.effort || "").localeCompare(b.effort || ""),
   mode: (a, b) => (a.mode_label || "").localeCompare(b.mode_label || ""),
   status: (a, b) => rank(a) - rank(b),
-  rc: (a, b) => (a.remote_control === b.remote_control ? 0 : a.remote_control ? -1 : 1),
   // Numeric, most notable first.
   ctx: (a, b) => contextPct(b) - contextPct(a),
   out: (a, b) => ((b.usage || {}).output_tokens || 0) - ((a.usage || {}).output_tokens || 0),

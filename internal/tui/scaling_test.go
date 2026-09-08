@@ -21,21 +21,21 @@ const scaleFloor, scaleCeil = 72, 200
 // strip) are actually exercised by the sweep (#332).
 func sampleModel(t tab) model {
 	var sessions []api.SessionView
-	add := func(title, dir, status string, out int64, rc bool) {
+	add := func(title, dir, status string, out int64) {
 		sessions = append(sessions, api.SessionView{
 			Title: title, Machine: "orion-dev", User: "ada", ProjectDir: "/home/ada/" + dir,
-			Status: status, RemoteControl: rc, Detail: "editing " + dir,
+			Status: status, Detail: "editing " + dir,
 			LastSeenAt: "2026-08-04T15:00:00Z", Usage: api.Usage{OutputTokens: out},
 		})
 	}
-	add("api-gateway", "gateway", "working", 1_280_100_000, true)
-	add("web-app", "web-app", "working", 2_821_800_000, true)
-	add("data-pipeline", "data-pipeline", "working", 1_421_500_000, true)
+	add("api-gateway", "gateway", "working", 1_280_100_000)
+	add("web-app", "web-app", "working", 2_821_800_000)
+	add("data-pipeline", "data-pipeline", "working", 1_421_500_000)
 	for i := 0; i < 7; i++ {
-		add("idle-"+string(rune('a'+i)), "raccoon", "idle", int64(i)*1000, i < 4)
+		add("idle-"+string(rune('a'+i)), "raccoon", "idle", int64(i)*1000)
 	}
 	for i := 0; i < 12; i++ {
-		add("ended-"+string(rune('a'+i)), "claude", "ended", int64(i)*1_000_000, false)
+		add("ended-"+string(rune('a'+i)), "claude", "ended", int64(i)*1_000_000)
 	}
 	return model{
 		tab:      t,

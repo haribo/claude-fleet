@@ -17,6 +17,13 @@ file is the single source of truth, not a second narrative.
   are absent from the header, and it is the operator who narrowed the window
   (#788).
 
+### Removed
+
+- The remote-control column, its sort key and the `rc` filter token. The field
+  vigie read to detect `/rc` is now set on every session whether or not it is
+  active, so the column marked sessions nobody was driving — and there is no
+  documented signal to rebuild it on (#789).
+
 ### Fixed
 
 - A session the daemon reads as over now shows when it ended, instead of a dash.

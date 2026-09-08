@@ -191,8 +191,6 @@ func toView(s store.Session, samples []int64, now time.Time, machineWatched bool
 		StartedAt:       s.StartedAt,
 		LastSeenAt:      s.LastSeenAt,
 		EndedAt:         endedAt,
-		RemoteControl:   s.RemoteControl,
-		RemoteURL:       s.RemoteURL,
 		APIErrorStatus:  s.APIErrorStatus,
 		Detail:          s.Detail,
 		DetailText:      detailTextView(s, effective),
