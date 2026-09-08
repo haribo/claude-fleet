@@ -181,7 +181,7 @@ func TestThePlatformAndFreshnessMovedIntoTheModal(t *testing.T) {
 	if strings.Contains(m.bottomBar(), "platform") || strings.Contains(m.bottomBar(), "⟳") {
 		t.Errorf("the bottom bar still carries a reliability indicator:\n%s", m.bottomBar())
 	}
-	out := renderState(m.stateRows(), 200)
+	out := renderState(m.stateRows(), "", 200)
 	for _, want := range []string{"claude platform", "usage snapshot", "vigie server", "watcher", "client / daemon"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("the state modal is missing %q:\n%s", want, out)

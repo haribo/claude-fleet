@@ -23,7 +23,7 @@ tab bar                     ┐
 [⚠ watcher-stale]           │ fixed (top)
 rule                        │
 [filter line]               │
-[overflow banner]           ┘
+                            ┘
 column header               ← pinned
  …session rows…             ← the only scrollable band
 [position indicator]        ← pinned (only when the band overflows)
@@ -54,8 +54,8 @@ the way to the shortcuts is reachable from all of them.
 `View` learns the terminal height from `WindowSizeMsg.Height` (new `model.height`,
 the vertical dual of `model.width`). The row budget is computed by **measuring the
 rendered chrome**, not by hard-coding line counts — the chrome is variable
-(the watcher-stale line, the filter line, the multi-line overflow banner and a
-wrapped usage strip all come and go):
+(the watcher-stale line, the filter line and a wrapped usage strip all come and
+go — the overflow banner did too, until #788 moved it into the state modal):
 
 ```
 rowBudget = height − lines(everything rendered except the row band)

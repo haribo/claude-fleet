@@ -67,6 +67,14 @@ Three tests, all of which a permanent element must pass:
 Target: **6 chrome rows, 3 rules, two scopes** — navigation on top, figures at
 the bottom, nothing but sessions between them.
 
+**The hidden-columns warning left on these tests (#788).** It stood above the
+list for as long as the terminal was narrow, and failed two of the three: the
+header already shows which columns are there, and the operator narrowed the
+window themselves — where `hidden N` survives precisely because the idle and
+ended filters are silent. It also cost what it was reporting on: measured at 96
+columns the message wrapped onto two lines, and the board fell from ten sessions
+to seven. It is now a note in the state modal (§ 5).
+
 ```
 tab labels + [i]●            ┐ navigation
 underline                    ┘
@@ -162,6 +170,13 @@ captures keys while open.
 │                                                         │
 ╰─ i or esc to close ─────────────────────────────────────╯
 ```
+
+**A note may follow the rows, under a rule, and it is not one of them.** The
+hidden-columns message lands there (#788): it is a fact about the terminal's
+width, not a link in the chain above, and a row of its own would need a level it
+does not have — the grey glyph would claim a state where there is none. It
+appears only when columns are dropped, and only on the Sessions tab, whose
+columns they are.
 
 **Rows use the pill's vocabulary**, the same three shapes plus grey `◌`, so the
 pill is a summary of the modal and not a second language. The worst row is the
