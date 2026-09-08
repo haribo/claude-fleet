@@ -22,7 +22,7 @@ Every session shows exactly one status. What each tells the operator:
 | `idle`     | The session is open and alive but between turns — nobody is acting.     |
 | `error`    | The session hit a live Claude API error (500 / 529 / 429). Transient — clears when it recovers. The HTTP code is a DETAIL refinement, not part of the status (§ 2, #584). |
 | `stale`    | No recent report **and the machine has no watcher**, so the true state is unknown. Shown (grey, dotted `◌`) instead of a false `ended`: *no news* ≠ *dead*. Resolves once a watcher runs there (#284/#285). |
-| `ended`    | The session is over (closed, or its process is gone).                   |
+| `ended`    | The session is over (closed, or its process is gone). Its **end time** is when vigie last saw it, not when it stopped — see below. |
 
 `waiting` and `error` are the two statuses that call the operator, and a session can raise a call of its own on top of any status ([ADR-0010](../adr/0010-session-raised-operator-call.md)). `waiting`
 means *the operator is the blocker*; `error` means *the platform is
@@ -56,6 +56,24 @@ The calling family keeps two colours because they are two different asks: answer
 a prompt, look at an outage. It carried a third for `stalled`, which
 [ADR-0012](../adr/0012-retire-the-stalled-status.md) removed. The other families
 ask for nothing, so they need no distinction between their members.
+
+**The end time says when vigie last saw the session, not when it stopped.** It
+cannot say more: a session reaches `ended` either because Claude Code announced
+it, or because it stopped being reported and its machine's watcher is alive. Both
+are observations after the fact — the watcher notices a disappearance on its next
+pass, not at the instant of death — and both are shown the same way.
+
+The second case used to show a dash. Nothing is written on that path, so nothing
+stamped a time (#739 covered the first, #792 the second). What it shows now is the
+last report the daemon received about the session.
+
+**SEEN does not answer in its place**, which is why the field exists at all. SEEN
+carries the report's own timestamp, and a watch report timestamps the transcript's
+last *activity* — so a session quiet for three hours before it was killed reads
+`3h` there: when it last worked, not when it stopped being alive. On a live fleet
+a session reported every two seconds showed a SEEN of nineteen minutes. The two
+columns answer different questions, and on this path they diverge by exactly the
+idle time that preceded the end.
 
 **`stale` and `ended` share the grey deliberately.** Under the rule they are one
 family. Telling them apart is a *second* reading and is carried by shape — `◌`

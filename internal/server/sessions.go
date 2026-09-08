@@ -141,6 +141,24 @@ func toView(s store.Session, samples []int64, now time.Time, machineWatched bool
 			effective = "stale"
 		}
 	}
+	// A session read as over here was never reported over, so nothing stamped a
+	// time and the row went grey with a dash where it belongs — the case #739 was
+	// opened for, on the path it did not cover (#792).
+	//
+	// What is shown is when vigie stopped hearing about the session. `LastSeenAt`
+	// cannot answer: it carries the report's own timestamp, which for a watch
+	// report is the transcript's last *activity*, so a session quiet for hours
+	// before it was killed reads `last seen 3h ago` — when it last worked. The
+	// heartbeat is the observation.
+	//
+	// Same honesty as the stamped path: the watcher notices a disappearance on its
+	// next pass, not at the instant of death. Neither says when the session
+	// stopped; both say when vigie last saw it, which is all it can witness
+	// (docs/design/session-status.md § 1).
+	endedAt := s.EndedAt
+	if effective == "ended" && endedAt == "" {
+		endedAt = s.ReportedAt // empty when nothing was ever reported, and then still a dash
+	}
 	return api.SessionView{
 		ID:              s.ID,
 		Title:           s.Title,
@@ -172,7 +190,7 @@ func toView(s store.Session, samples []int64, now time.Time, machineWatched bool
 		},
 		StartedAt:       s.StartedAt,
 		LastSeenAt:      s.LastSeenAt,
-		EndedAt:         s.EndedAt,
+		EndedAt:         endedAt,
 		RemoteControl:   s.RemoteControl,
 		RemoteURL:       s.RemoteURL,
 		APIErrorStatus:  s.APIErrorStatus,
