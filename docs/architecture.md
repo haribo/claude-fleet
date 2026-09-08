@@ -61,8 +61,10 @@ The **web dashboard** is the second client, served by the daemon itself (no buil
 step, no framework — plain HTML/CSS/JS as `go:embed` static files, consistent with
 the single-binary ethos of [ADR-0002](adr/0002-single-go-binary-with-sqlite.md)). Open the
 daemon's URL in a browser and paste the shared token; it is kept in the browser and
-sent as a bearer token on same-origin API calls. Read-only, like every client
-(observe-only, [ADR-0005](adr/0005-observe-only.md)).
+sent as a bearer token on same-origin API calls. It reads the fleet and does not
+change it — a decision about this client, not a rule the others follow: the
+terminal writes the session-retention window. ADR-0005 is a different subject
+entirely; it forbids acting on a *session*, which no client does.
 
 **What "mirror" binds — content and hierarchy, not gestures.** The dashboard owes
 the TUI agreement on *what is shown and what earns permanent space*: the same
