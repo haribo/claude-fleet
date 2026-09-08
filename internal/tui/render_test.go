@@ -100,21 +100,11 @@ func TestRenderTableNarrowHidesColumns(t *testing.T) {
 	}
 }
 
-func TestRCCell(t *testing.T) {
-	if got := rcCell(api.SessionView{RemoteControl: true}); got != "◉" {
-		t.Errorf("rc on = %q, want ◉", got)
-	}
-	if got := rcCell(api.SessionView{RemoteControl: false}); got != "○" {
-		t.Errorf("rc off = %q, want ○", got)
-	}
-}
-
-func TestRenderDetailUserAndRC(t *testing.T) {
+func TestRenderDetailUser(t *testing.T) {
 	out := renderDetail(api.SessionView{
-		ID: "s1", Title: "t", User: "alice", Machine: "m",
-		Status: "working", RemoteControl: true,
+		ID: "s1", Title: "t", User: "alice", Machine: "m", Status: "working",
 	})
-	for _, want := range []string{"User", "alice", "Remote control", "on"} {
+	for _, want := range []string{"User", "alice"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("detail missing %q:\n%s", want, out)
 		}

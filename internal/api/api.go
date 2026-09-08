@@ -37,8 +37,6 @@ type ReportRequest struct {
 	// client remains.
 	Activity       string `json:"activity,omitempty"`
 	Status         string `json:"status,omitempty"`           // explicit status (watcher); empty = derive from event
-	RemoteControl  *bool  `json:"remote_control,omitempty"`   // detected /rc state (watcher); nil = no info
-	RemoteURL      string `json:"remote_url,omitempty"`       // /rc resume URL (watcher); "" clears it, set with RemoteControl
 	Usage          *Usage `json:"usage,omitempty"`            // present on Stop / SessionEnd
 	APIErrorStatus int    `json:"api_error_status,omitempty"` // HTTP code of a live API error (watcher); 0 = none
 	// WatcherVersion/WatcherCommit are the watcher's build, carried on Event=="watch"
@@ -129,8 +127,6 @@ type SessionView struct {
 	StartedAt       string `json:"started_at"`
 	LastSeenAt      string `json:"last_seen_at"`
 	EndedAt         string `json:"ended_at,omitempty"`
-	RemoteControl   bool   `json:"remote_control"`
-	RemoteURL       string `json:"remote_url,omitempty"`       // /rc resume URL while remote control is active
 	APIErrorStatus  int    `json:"api_error_status,omitempty"` // HTTP code when Status == "error", else 0
 	Detail          string `json:"detail,omitempty"`           // contextual detail of the current state (#393)
 	// DetailText is what the DETAIL cell shows, in precedence order: a raised call

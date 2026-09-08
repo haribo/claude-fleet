@@ -45,7 +45,7 @@ meaning anything ([ADR-0013](docs/adr/0013-only-claude-code-may-report.md)).
   to it. In the terminal (libnotify), on the GNOME top bar, and in the browser
   (opt-in from Settings; the browser requires an https or localhost address).
 - **Terminal and browser** — a TUI, and a read-only web dashboard served by the daemon itself. The same board of sessions in both; Stats and Settings differ on purpose, and each suits its own medium.
-- **Per-session insight** — tokens, context fill, reasoning effort, permission mode, `/rc` link.
+- **Per-session insight** — tokens, context fill, reasoning effort, permission mode.
 - **Usage and history** — subscription usage, plus daily rollups of tokens and of where your time went.
 - **Observe-only** — vigie never writes into a session, and stores nothing about how *you* handled one.
 

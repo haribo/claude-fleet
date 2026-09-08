@@ -70,7 +70,7 @@ var signatureExcluded = map[string]string{
 // the implementation so the two are edited together.
 var fieldsCovered = []string{
 	"ID", "Status", "StatusChangedAt", "EndedAt", "Detail", "Title", "User", "Machine", "Model",
-	"GitBranch", "ProjectDir", "LastTool", "RemoteControl", "RemoteURL", "APIErrorStatus",
+	"GitBranch", "ProjectDir", "LastTool", "APIErrorStatus",
 	"CallAt", "CallMessage", "Usage", "Effort", "ContextTokens", "PermissionMode",
 }
 
@@ -111,7 +111,6 @@ func TestChangingAnyCoveredFieldChangesTheSignature(t *testing.T) {
 		// #765: it can now change on its own, so the claim is checked rather than
 		// argued from the status.
 		{"EndedAt", func(s store.Session) store.Session { s.EndedAt = "2026-09-06T10:00:00Z"; return s }},
-		{"RemoteURL", func(s store.Session) store.Session { s.RemoteURL = "https://x"; return s }},
 	} {
 		if visibleSignature(base) == visibleSignature(c.apply(base)) {
 			t.Errorf("a change to %s leaves the signature identical — an open dashboard would never redraw", c.field)
