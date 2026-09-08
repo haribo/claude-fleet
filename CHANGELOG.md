@@ -9,6 +9,12 @@ file is the single source of truth, not a second narrative.
 
 ## [Unreleased]
 
+### Fixed
+
+- A machine's card in the browser draws every session it counts. A session whose
+  status the page did not recognise was in the total and in no pill, so the two
+  numbers disagreed with nothing to say why (#791).
+
 ## [0.13.2] - 2026-09-08
 
 ### Fixed

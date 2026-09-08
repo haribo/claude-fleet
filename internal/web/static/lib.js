@@ -591,3 +591,24 @@ export function bodyFor(s) {
     default:        return "needs you";
   }
 }
+
+// statusBreakdown turns a machine's per-status counts into the pills its card
+// draws: every status that has sessions, the known ones in the vocabulary's
+// order, then the ones this build cannot place.
+//
+// The card used to filter the counts through STATUSES, so a session whose status
+// this build does not know was counted in the machine's total and drawn in no
+// pill — the two numbers disagreed and nothing said why (#791). Two ordinary ways
+// in: a row still stored under a status ADR-0012 retired, and a status the daemon
+// sends before this bundle knows it, which is the usual order of a deploy.
+//
+// The unfamiliar word is the point. It keeps its own name and takes the neutral
+// class, the same degradation `statusClass` applies in the session table (#719):
+// showing a status this build cannot place beats dropping the session that has
+// it — which is the rule the terminal has followed on this tab since #509.
+export function statusBreakdown(counts) {
+  const c = counts || {};
+  const known = STATUSES.filter((s) => c[s] > 0);
+  const unknown = Object.keys(c).filter((s) => c[s] > 0 && !STATUSES.includes(s)).sort();
+  return [...known, ...unknown].map((status) => ({ status, n: c[status], cls: statusClass(status) }));
+}
