@@ -536,9 +536,13 @@ func rejectReport(req api.ReportRequest) (reason, message string) {
 	//
 	//   - the events table stores it verbatim — plain INSERT, no constraint;
 	//   - `token_samples` is keyed on it and pruned by `ORDER BY at DESC LIMIT`,
-	//     so a string that sorts high evicts real samples;
-	//   - `dayOf` falls back to *now* rather than failing, so the tokens land on
-	//     today in `stats_daily`, which is never recomputed (#432).
+	//     so a string that sorts high evicts real samples.
+	//
+	// A third used to be listed here: `dayOf` fell back to *now*, so growth landed
+	// on today in `stats_daily`, which is never recomputed. It no longer does —
+	// no day, no rollup (#768) — and it was the one harm that applied to an
+	// *absent* timestamp as much as to a malformed one, which is what made the
+	// decision below look inconsistent with the list above it.
 	//
 	// Empty stays accepted, on the model of the status check above: absent is not
 	// malformed, it renders as a dash, and it cannot act on a terminal.

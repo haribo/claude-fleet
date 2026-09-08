@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/haribo/claude-vigie/internal/api"
+
+	"github.com/haribo/claude-vigie/internal/store"
 )
 
 func TestUsageLeaseAndSnapshot(t *testing.T) {
@@ -86,7 +88,10 @@ func TestAHolderThatFetchedNothingHandsTheLeaseBack(t *testing.T) {
 
 	// And a machine that no longer holds it cannot take it from whoever does.
 	ask("m1", true)
-	if h, _, err := srv.store.LeaseHolder(t.Context(), srv.now()); err != nil || h != "m2" {
+	// Through the concrete store: reading the holder is deliberately not on the
+	// server's Store interface, so the read-then-write this replaced cannot be
+	// rebuilt there by accident (#774).
+	if h, _, err := srv.store.(*store.Store).LeaseHolder(t.Context(), srv.now()); err != nil || h != "m2" {
 		t.Errorf("holder = %q (err %v), want m2 — a stale release must not steal the lease", h, err)
 	}
 }

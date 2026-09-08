@@ -9,6 +9,21 @@ file is the single source of truth, not a second narrative.
 
 ## [Unreleased]
 
+## [0.13.2] - 2026-09-08
+
+### Fixed
+
+- The usage gauges can no longer go backwards. A machine whose turn to fetch had
+  lapsed could still post the figures it had read minutes earlier, landing them
+  on top of fresher ones (#774).
+
+- A machine that loses the race for the usage lease is told so, instead of
+  getting an error it cannot tell from a broken database (#779).
+
+- A retention setting the daemon fails to read no longer deletes sessions. A
+  failed read was treated as "nothing chosen", so it pruned on the default and
+  then wrote that default over an operator's `keep everything` (#777).
+
 ## [0.13.1] - 2026-09-07
 
 ### Fixed
@@ -714,7 +729,8 @@ across machines — it reads and reports session state; it never drives a sessio
 - The API binds `127.0.0.1` by default; every `/api/*` route is behind a
   constant-time shared-token check; request bodies are size-capped.
 
-[Unreleased]: https://github.com/haribo/claude-vigie/compare/v0.13.1...HEAD
+[Unreleased]: https://github.com/haribo/claude-vigie/compare/v0.13.2...HEAD
+[0.13.2]: https://github.com/haribo/claude-vigie/compare/v0.13.1...v0.13.2
 [0.13.1]: https://github.com/haribo/claude-vigie/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/haribo/claude-vigie/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/haribo/claude-vigie/compare/v0.11.0...v0.12.0

@@ -33,10 +33,14 @@ type Store interface {
 	RecentSamples(ctx context.Context, since string, limit int) (map[string][]int64, error)
 	AcquireLease(ctx context.Context, holder string, ttl time.Duration, now time.Time) (bool, string, error)
 	ReleaseLease(ctx context.Context, holder string) error
-	LeaseHolder(ctx context.Context, now time.Time) (string, bool, error)
 	GetMeta(ctx context.Context, key string) (string, bool, error)
 	ListMeta(ctx context.Context) (map[string]string, error)
 	SetMeta(ctx context.Context, key, value string) error
+	// The usage snapshot is written *through* the lease check, in one statement.
+	// `LeaseHolder` is deliberately not here: with a way to read the holder
+	// separately, the two-step this replaced can be written again by accident
+	// (#774).
+	SetMetaIfLeaseHolder(ctx context.Context, key, value, holder string, now time.Time) (string, bool, error)
 }
 
 // Server is the HTTP handler set for the fleet API.

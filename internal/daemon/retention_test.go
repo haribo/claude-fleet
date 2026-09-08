@@ -42,7 +42,7 @@ func TestDecideRetention(t *testing.T) {
 		{name: "a stored window shorter than an hour is honored", stored: "5m", storedOK: true, want: 5 * time.Minute, wantPrune: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := decideRetention(tc.stored, tc.storedOK, def)
+			got := decideRetention(tc.stored, tc.storedOK, nil, def)
 			if got.prune != tc.wantPrune {
 				t.Fatalf("prune = %v, want %v", got.prune, tc.wantPrune)
 			}
@@ -63,7 +63,7 @@ func TestDecideRetentionWithADisabledDefault(t *testing.T) {
 		v  string
 		ok bool
 	}{{"", false}, {"", true}, {"nonsense", true}} {
-		if got := decideRetention(stored.v, stored.ok, 0); got.prune {
+		if got := decideRetention(stored.v, stored.ok, nil, 0); got.prune {
 			t.Errorf("stored=%q ok=%v: pruning enabled with a zero default", stored.v, stored.ok)
 		}
 	}
@@ -72,7 +72,7 @@ func TestDecideRetentionWithADisabledDefault(t *testing.T) {
 // The unparsable case must name the value, or an operator cannot tell which
 // setting is being ignored.
 func TestUnparsableRetentionWarningNamesTheValue(t *testing.T) {
-	got := decideRetention("forever", true, 24*time.Hour)
+	got := decideRetention("forever", true, nil, 24*time.Hour)
 	if !strings.Contains(got.warning, "forever") {
 		t.Errorf("warning = %q, want it to quote the offending value", got.warning)
 	}

@@ -34,9 +34,9 @@ hash = "89a4715cca28"
 adopted = "2026-08-22"
 hash = "95964a8a6256"
 
-[rules.issue-not-trusted]
-adopted = "2026-08-22"
-hash = "88cb9b037eff"
+[rules.issue-handling]
+adopted = "2026-09-07"
+hash = "bd91539c493b"
 
 [rules.measurable-defect]
 adopted = "2026-08-04"
