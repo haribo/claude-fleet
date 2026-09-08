@@ -26,6 +26,11 @@ file is the single source of truth, not a second narrative.
 
 ### Fixed
 
+- The terminal notices a dead event stream in seconds instead of waiting on it.
+  After a suspend the connection can stay open and answer nothing; the board kept
+  refreshing on its own poll, but live updates stopped until the kernel gave up
+  (#793).
+
 - A session the daemon reads as over now shows when it ended, instead of a dash.
   0.13.0 announced this for a session that ended with its process; it was true
   only where a report established the end, and not on the quieter path where the
