@@ -11,6 +11,11 @@ file is the single source of truth, not a second narrative.
 
 ### Fixed
 
+- A session the daemon reads as over now shows when it ended, instead of a dash.
+  0.13.0 announced this for a session that ended with its process; it was true
+  only where a report established the end, and not on the quieter path where the
+  session simply stopped being reported (#792).
+
 - A machine's card in the browser draws every session it counts. A session whose
   status the page did not recognise was in the total and in no pill, so the two
   numbers disagreed with nothing to say why (#791).
