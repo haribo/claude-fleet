@@ -103,7 +103,6 @@ var columns = []column{
 	{"TOTAL", 7, 2, true, func(s api.SessionView) string { return humanizeTokens(totalTokens(s)) }, nil},
 	{"SEEN", 6, 6, true, func(s api.SessionView) string { return relativeAge(s.LastSeenAt, clock.Now()) }, func(api.SessionView) lipgloss.Style { return dimStyle }},
 	{"ACT", 10, 9, false, func(s api.SessionView) string { return activitySpark(s.Samples) }, nil},
-	{"RC", 3, 1, false, rcCell, rcStyle},
 	{"STATUS", 12, 0, false, statusCell, func(s api.SessionView) lipgloss.Style { return statusStyle(s.Status) }},
 	{"MODE", 7, 8, false, func(s api.SessionView) string { return s.ModeLabel }, modeStyle},
 	{"DETAIL", 36, 10, false, func(s api.SessionView) string { return s.DetailText }, detailStyle},
@@ -124,26 +123,7 @@ func detailStyle(s api.SessionView) lipgloss.Style {
 	return dimStyle
 }
 
-var (
-	rcOnStyle  = lipgloss.NewStyle().Foreground(cGreen)
-	rcOffStyle = dimStyle
-	userStyle  = lipgloss.NewStyle().Foreground(cAccent2) // violet
-)
-
-// rcCell renders the remote-control flag: ◉ when active, ○ when inactive.
-func rcCell(s api.SessionView) string {
-	if s.RemoteControl {
-		return "◉"
-	}
-	return "○"
-}
-
-func rcStyle(s api.SessionView) lipgloss.Style {
-	if s.RemoteControl {
-		return rcOnStyle
-	}
-	return rcOffStyle
-}
+var userStyle = lipgloss.NewStyle().Foreground(cAccent2) // violet
 
 const colSep = "  "
 
@@ -255,7 +235,8 @@ func groupKey(s api.SessionView, gb groupBy) string {
 
 // renderDetail renders a full-session detail panel.
 func renderDetail(s api.SessionView) string {
-	lines := []string{
+	lines := make([]string, 0, 22)
+	lines = append(lines,
 		// s.Name, not `title || full id`: this panel had a fourth naming rule, and
 		// it printed the id twice — once as Name, once as Session (#618).
 		detailField("Name", s.Name),
@@ -270,12 +251,6 @@ func renderDetail(s api.SessionView) string {
 		detailField("Status", s.Status),
 		detailField("Mode", s.ModeDetail),
 		detailField("Detail", orDash(s.Detail)),
-		detailField("Remote control", rcLabel(s.RemoteControl)),
-	}
-	if s.RemoteURL != "" { // the /rc resume link, only while remote control is on
-		lines = append(lines, detailField("Remote URL", s.RemoteURL))
-	}
-	lines = append(lines,
 		detailField("Last tool", orDash(s.LastTool)),
 		detailField("Started", orDash(s.StartedAt)),
 		detailField("Last seen", orDash(s.LastSeenAt)),
@@ -297,14 +272,6 @@ func renderDetail(s api.SessionView) string {
 
 func detailField(label, value string) string {
 	return labelStyle.Render(pad(label+":", 16)) + value
-}
-
-// rcLabel renders the remote-control flag as a symbol + word for the detail panel.
-func rcLabel(on bool) string {
-	if on {
-		return rcOnStyle.Render("◉ on")
-	}
-	return rcOffStyle.Render("○ off")
 }
 
 // Braille dot bits (offset from U+2800) for a column filled from the bottom up

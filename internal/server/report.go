@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/haribo/claude-vigie/internal/api"
@@ -217,7 +216,7 @@ func (s *Server) maybeSample(ctx context.Context, sessionID, at string, output i
 // wasted (#258).
 func visibleSignature(s store.Session) string {
 	u := s.Usage
-	return fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%t|%s|%d|%s|%s|%d|%d|%d|%d|%s|%d|%t|%s",
+	return fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%d|%s|%s|%d|%d|%d|%d|%s|%d|%t|%s",
 		s.Status, s.StatusChangedAt,
 		// The end time is covered rather than derived from the status change. It was
 		// excluded on the premise that one always accompanied the other, which #739
@@ -228,7 +227,7 @@ func visibleSignature(s store.Session) string {
 		// (#765).
 		s.EndedAt,
 		s.Detail, s.Title, s.User, s.Machine, s.Model,
-		s.GitBranch, s.ProjectDir, s.LastTool, s.RemoteControl, s.RemoteURL, s.APIErrorStatus,
+		s.GitBranch, s.ProjectDir, s.LastTool, s.APIErrorStatus,
 		s.CallAt, s.CallMessage, // raising or clearing a call must reach the dashboards (#388)
 		u.InputTokens, u.OutputTokens, u.CacheCreationTokens, u.CacheReadTokens,
 		// The dashboard renders these too, and stops polling once the stream is
@@ -283,10 +282,6 @@ func applyReport(sess store.Session, isNew bool, req api.ReportRequest) store.Se
 
 	sess = applyStatus(sess, req)
 	sess = applyEndedAt(sess, req)
-	if req.RemoteControl != nil {
-		sess.RemoteControl = *req.RemoteControl       // detected /rc state (read-only)
-		sess.RemoteURL = safeRemoteURL(req.RemoteURL) // resume URL travels with the /rc flag; "" clears it (#515)
-	}
 	if req.LastTool != "" {
 		sess.LastTool = req.LastTool
 	}
@@ -569,26 +564,6 @@ var knownEvents = map[string]bool{
 	"SessionStart": true, "UserPromptSubmit": true, "PostToolUse": true,
 	"Notification": true, "Stop": true, "PreCompact": true, "SessionEnd": true,
 	"watch": true, "call": true,
-}
-
-// safeRemoteURL returns the /rc resume URL if it is one a browser may safely be
-// pointed at, else "". It is validated here rather than at render: the dashboard
-// puts it in an href, and `javascript:` or `data:` survives HTML escaping
-// untouched — escaping stops an attribute being broken out of, not a scheme from
-// being followed. Validating at ingestion means a bad value never reaches the
-// store, so no client has to remember to check (#515).
-//
-// Only https is allowed. The URL is Claude's own resume link (ADR-0005: detected,
-// never set), so anything else is not a URL vigie has any business relaying.
-func safeRemoteURL(raw string) string {
-	if raw == "" {
-		return ""
-	}
-	u, err := url.Parse(raw)
-	if err != nil || u.Scheme != "https" || u.Host == "" {
-		return ""
-	}
-	return raw
 }
 
 // deriveStatus maps a hook event to a session status, keeping the current

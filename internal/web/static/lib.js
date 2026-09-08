@@ -193,7 +193,6 @@ export function sessionHaystack(s) {
 // learns it in one window must find it in the other.
 export function matchesFilter(s, filter) {
   if (!filter) return true;
-  if (filter.toLowerCase() === "rc") return Boolean(s && s.remote_control);
   return fuzzyMatch(filter, sessionHaystack(s));
 }
 
@@ -292,7 +291,6 @@ export const SORT_COMPARATORS = {
   effort: (a, b) => (a.effort || "").localeCompare(b.effort || ""),
   mode: (a, b) => (a.mode_label || "").localeCompare(b.mode_label || ""),
   status: (a, b) => rank(a) - rank(b),
-  rc: (a, b) => (a.remote_control === b.remote_control ? 0 : a.remote_control ? -1 : 1),
   // Numeric, most notable first.
   ctx: (a, b) => contextPct(b) - contextPct(a),
   out: (a, b) => ((b.usage || {}).output_tokens || 0) - ((a.usage || {}).output_tokens || 0),
@@ -590,4 +588,25 @@ export function bodyFor(s) {
     case "error":   return "hit an API error";
     default:        return "needs you";
   }
+}
+
+// statusBreakdown turns a machine's per-status counts into the pills its card
+// draws: every status that has sessions, the known ones in the vocabulary's
+// order, then the ones this build cannot place.
+//
+// The card used to filter the counts through STATUSES, so a session whose status
+// this build does not know was counted in the machine's total and drawn in no
+// pill — the two numbers disagreed and nothing said why (#791). Two ordinary ways
+// in: a row still stored under a status ADR-0012 retired, and a status the daemon
+// sends before this bundle knows it, which is the usual order of a deploy.
+//
+// The unfamiliar word is the point. It keeps its own name and takes the neutral
+// class, the same degradation `statusClass` applies in the session table (#719):
+// showing a status this build cannot place beats dropping the session that has
+// it — which is the rule the terminal has followed on this tab since #509.
+export function statusBreakdown(counts) {
+  const c = counts || {};
+  const known = STATUSES.filter((s) => c[s] > 0);
+  const unknown = Object.keys(c).filter((s) => c[s] > 0 && !STATUSES.includes(s)).sort();
+  return [...known, ...unknown].map((status) => ({ status, n: c[status], cls: statusClass(status) }));
 }

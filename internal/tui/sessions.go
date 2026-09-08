@@ -57,14 +57,10 @@ func (v sessionsView) visible(all []api.SessionView, p prefs, now time.Time) []a
 }
 
 // matchesFilter reports whether a session passes the active filter: the special
-// "rc" token matches remote-controlled sessions, everything else is a fuzzy
-// subsequence match over the session's text.
+// filter is a fuzzy subsequence match over the session's text.
 func (v sessionsView) matchesFilter(s api.SessionView) bool {
 	if v.filter == "" {
 		return true
-	}
-	if strings.EqualFold(v.filter, "rc") {
-		return s.RemoteControl
 	}
 	return fuzzyMatch(v.filter, sessionHaystack(s))
 }
@@ -168,7 +164,6 @@ const (
 	sortTokens
 	sortStatus
 	sortName
-	sortRC
 	sortKeyCount
 )
 
@@ -177,7 +172,6 @@ var sortNames = map[sortKey]string{
 	sortTokens:   "tokens",
 	sortStatus:   "status",
 	sortName:     "name",
-	sortRC:       "rc",
 }
 
 // groupBy identifies how sessions are grouped in the table.
@@ -347,11 +341,29 @@ func (m model) visibleSessions() []api.SessionView {
 	return m.sess.visible(m.sessions, m.prefs, m.now())
 }
 
-// overflowBanner is the warning naming the columns the width auto-drop removed
-// (the TUI never scrolls sideways). It is wrapped to width so it never runs past
-// the edge and gets cut off on a narrow terminal (#325). Empty when all fit.
-func overflowBanner(active []column, width int) string {
-	over := overflowColumns(active, width)
+// columnsNote names the columns the width auto-drop removed, for the state modal.
+//
+// It was a warning above the session list, permanent for as long as the terminal
+// stayed narrow. It failed two of the three tests a standing row has to pass
+// (sessions-chrome.md § 2): the header already shows which columns are there, and
+// the operator narrowed the window themselves — where `hidden N` earns its row
+// because the idle and ended filters are silent, and nothing about a narrow
+// terminal is. It also cost rows at the moment rows were scarcest: measured at 96
+// columns, the message wrapped onto two lines and the board fell from ten
+// sessions to seven (#788).
+//
+// It is not dropped, for the case that is not self-inflicted — a terminal that
+// *starts* narrow, a tmux pane, an ssh session from a phone, where the operator
+// narrowed nothing and could think their column layout was lost. Behind `i` the
+// question is asked rather than answered unprompted.
+//
+// Scoped to the Sessions tab: these are its columns, and the modal opens from
+// anywhere.
+func (m model) columnsNote() string {
+	if m.tab != tabSessions {
+		return ""
+	}
+	over := overflowColumns(activeColumns(m.prefs.columnOrder, m.prefs.columnHidden), m.width)
 	if len(over) == 0 {
 		return ""
 	}
@@ -363,13 +375,8 @@ func overflowBanner(active []column, width int) string {
 	if len(over) > 1 {
 		word = "columns"
 	}
-	msg := fmt.Sprintf("⚠ %d %s hidden — terminal too narrow; widen, or deselect in Settings → Columns: %s",
+	return fmt.Sprintf("%d %s hidden: the terminal is too narrow for %s. Settings → Columns.",
 		len(over), word, strings.Join(names, ", "))
-	style := warnStyle
-	if width > 0 {
-		style = style.Width(width) // word-wrap to the terminal width
-	}
-	return style.Render(msg)
 }
 
 func (m model) viewSessions() string {
@@ -393,10 +400,6 @@ func (m model) viewSessions() string {
 	var b strings.Builder
 	if m.sess.filtering || m.sess.filter != "" {
 		b.WriteString(m.sess.filterLine() + "\n")
-	}
-	active := activeColumns(m.prefs.columnOrder, m.prefs.columnHidden)
-	if banner := overflowBanner(active, m.width); banner != "" {
-		b.WriteString(banner + "\n")
 	}
 	if len(vis) == 0 {
 		b.WriteString(dimStyle.Render("no sessions match the filter"))
@@ -456,9 +459,6 @@ func (m model) sessionsBand(bodyHeight int) (tableRows, int) {
 	fixed := 0
 	if m.sess.filtering || m.sess.filter != "" {
 		fixed += lineCount(m.sess.filterLine())
-	}
-	if banner := overflowBanner(active, m.width); banner != "" {
-		fixed += lineCount(banner)
 	}
 	fixed += len(tr.header)
 	fixed += lineCount(rule(m.width)) + lineCount(m.bottomBar())
@@ -583,11 +583,6 @@ func lessBy(a, b api.SessionView, key sortKey) bool {
 		return a.LastSeenAt > b.LastSeenAt // tie-break: most recent first
 	case sortName:
 		return strings.ToLower(a.Name) < strings.ToLower(b.Name)
-	case sortRC:
-		if a.RemoteControl != b.RemoteControl {
-			return a.RemoteControl // rc-active first
-		}
-		return a.LastSeenAt > b.LastSeenAt
 	default: // sortLastSeen
 		return a.LastSeenAt > b.LastSeenAt
 	}

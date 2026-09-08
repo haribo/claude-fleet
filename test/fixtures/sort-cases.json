@@ -16,29 +16,89 @@
     "checks them on its own."
   ],
   "now": "2026-08-30T12:00:00Z",
-  "default": { "key": "seen" },
+  "default": {
+    "key": "seen"
+  },
   "fleet": [
     {
-      "id": "alpha", "name": "alpha", "machine": "orion", "status": "idle", "rank": 5,
-      "last_seen_at": "2026-08-30T11:00:00Z", "remote_control": false,
-      "usage": { "output_tokens": 100, "input_tokens": 0, "cache_creation_tokens": 0, "cache_read_tokens": 0 }
+      "id": "alpha",
+      "name": "alpha",
+      "machine": "orion",
+      "status": "idle",
+      "rank": 5,
+      "last_seen_at": "2026-08-30T11:00:00Z",
+      "usage": {
+        "output_tokens": 100,
+        "input_tokens": 0,
+        "cache_creation_tokens": 0,
+        "cache_read_tokens": 0
+      }
     },
     {
-      "id": "bravo", "name": "bravo", "machine": "orion", "status": "working", "rank": 0,
-      "last_seen_at": "2026-08-30T11:59:00Z", "remote_control": true,
-      "usage": { "output_tokens": 900, "input_tokens": 0, "cache_creation_tokens": 0, "cache_read_tokens": 0 }
+      "id": "bravo",
+      "name": "bravo",
+      "machine": "orion",
+      "status": "working",
+      "rank": 0,
+      "last_seen_at": "2026-08-30T11:59:00Z",
+      "usage": {
+        "output_tokens": 900,
+        "input_tokens": 0,
+        "cache_creation_tokens": 0,
+        "cache_read_tokens": 0
+      }
     },
     {
-      "id": "charlie", "name": "charlie", "machine": "beta", "status": "waiting", "rank": 3,
-      "last_seen_at": "2026-08-30T10:00:00Z", "remote_control": false,
-      "usage": { "output_tokens": 500, "input_tokens": 0, "cache_creation_tokens": 0, "cache_read_tokens": 0 }
+      "id": "charlie",
+      "name": "charlie",
+      "machine": "beta",
+      "status": "waiting",
+      "rank": 3,
+      "last_seen_at": "2026-08-30T10:00:00Z",
+      "usage": {
+        "output_tokens": 500,
+        "input_tokens": 0,
+        "cache_creation_tokens": 0,
+        "cache_read_tokens": 0
+      }
     }
   ],
   "cases": [
-    { "key": "seen", "why": "the session that just moved is the one worth the glance", "want": ["bravo", "alpha", "charlie"] },
-    { "key": "total", "why": "the biggest consumer first, not the smallest", "want": ["bravo", "charlie", "alpha"] },
-    { "key": "status", "why": "by the rank the daemon sent, most active first", "want": ["bravo", "charlie", "alpha"] },
-    { "key": "name", "why": "A to Z", "want": ["alpha", "bravo", "charlie"] },
-    { "key": "rc", "why": "a session under remote control first, then by recency", "want": ["bravo", "alpha", "charlie"] }
+    {
+      "key": "seen",
+      "why": "the session that just moved is the one worth the glance",
+      "want": [
+        "bravo",
+        "alpha",
+        "charlie"
+      ]
+    },
+    {
+      "key": "total",
+      "why": "the biggest consumer first, not the smallest",
+      "want": [
+        "bravo",
+        "charlie",
+        "alpha"
+      ]
+    },
+    {
+      "key": "status",
+      "why": "by the rank the daemon sent, most active first",
+      "want": [
+        "bravo",
+        "charlie",
+        "alpha"
+      ]
+    },
+    {
+      "key": "name",
+      "why": "A to Z",
+      "want": [
+        "alpha",
+        "bravo",
+        "charlie"
+      ]
+    }
   ]
 }

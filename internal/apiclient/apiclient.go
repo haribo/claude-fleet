@@ -88,8 +88,10 @@ func Get[T any](cfg *config.Config, path, resource string) (T, error) {
 // dials a new one. Both values sit inside the watcher's 5 s cadence, so an outage
 // is noticed within a beat, and far above any round trip a working link produces.
 //
-// It applies to the long-lived callers — the watcher and the TUI. A hook is a
-// fresh process with a fresh connection and was never exposed.
+// It applies to the long-lived callers — the watcher, the TUI's polling, and the
+// TUI's event stream, which was the one left bare until #793 and the connection
+// most exposed to a suspend, being the one held open. A hook is a fresh process
+// with a fresh connection and was never exposed.
 func TuneForDeadConnections(t *http.Transport) *http.Transport {
 	t.HTTP2 = &http.HTTP2Config{
 		SendPingTimeout: 3 * time.Second,

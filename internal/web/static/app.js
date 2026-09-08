@@ -11,7 +11,7 @@ import {
   adoptLegacyKey, needsAttention, attentionCount, streamIsSilent, REFRESH_MS,
   readWatcher, fleetAlarm, fleetAlarmDetail, watcherCell,
   matchesFilter, GROUP_MODES, groupSessions, contextKnown, contextPct, contextCell, migrateV1Columns,
-  IDLE_PRESETS_MS, idleLabel, hiddenByIdle, STATUSES, SORT_COMPARATORS, DEFAULT_SORT, bodyFor,
+  IDLE_PRESETS_MS, idleLabel, hiddenByIdle, STATUSES, SORT_COMPARATORS, DEFAULT_SORT, bodyFor, statusBreakdown,
   boardState, emptyMessage, attentionIds, enteredAttention, nextAttention, statusClass,
 } from "./lib.js";
 
@@ -159,8 +159,6 @@ const COLS = [
     cell: (s) => `<td class="num dim">${relAge(s.last_seen_at)}</td>` },
   { key: "act", label: "Act", nosort: true,
     cell: (s) => `<td>${sparkSVG(s.samples)}</td>` },
-  { key: "rc", label: "RC", cmp: SORT_COMPARATORS.rc,
-    cell: (s) => `<td>${s.remote_control ? '<span class="rc-on" title="Remote control on">◉</span>' : '<span class="rc-off" title="Remote control off">○</span>'}</td>` },
   { key: "status", label: "Status", cmp: SORT_COMPARATORS.status,
     cell: (s) => `<td><span class="pill st-${statusClass(s.status)}${hasCall(s) ? " call" : ""}"><span class="dot"></span>${esc(s.status)}</span></td>` },
   // An unrecognised mode is surfaced raw, never relabelled "manual": a new mode
@@ -317,7 +315,7 @@ function renderMachines() {
     if (ageSec(s.last_seen_at) < ageSec(a.seen)) a.seen = s.last_seen_at;
   });
   const cards = Object.values(m).sort((a, b) => b.n - a.n).map((a) => {
-    const brk = STATUSES.filter((k) => a[k]).map((k) => `<span class="b st-${k}"><span class="dot"></span>${a[k]} <small>${k}</small></span>`).join("");
+    const brk = statusBreakdown(a).map((r) => `<span class="b st-${r.cls}"><span class="dot"></span>${r.n} <small>${esc(r.status)}</small></span>`).join("");
     const wv = watcher && watcher.versions && watcher.versions[a.name];
     const wver = wv && wv.version ? wv.version : "—";
     // Each machine's own verdict, beside the version it already showed. "⚠ time?"
@@ -540,8 +538,6 @@ function renderDetail(id) {
     field("Directory", esc(dash(s.project_dir)), "mut"), field("Branch", s.git_branch ? esc(s.git_branch) : "—"),
     field("Model", esc(dash(s.model_short)), s.model ? "" : "mut"), field("Effort", esc(dash(s.effort)), s.effort ? "" : "mut"),
     field("Detail", detailText(s), hasCall(s) ? "call" : (waiting ? "wait" : "mut")),
-    field("Remote control", s.remote_control ? "on ◉" : "off ○", "mut"),
-    s.remote_url ? field("Remote", `<a href="${esc(s.remote_url)}" target="_blank" rel="noopener noreferrer">${esc(s.remote_url)}</a>`) : "",
     field("Last tool", esc(dash(s.last_tool)), "mut"),
   ].join("");
   const times = [field("Started", esc(dash(s.started_at)), "mut"), field("Last seen", esc(dash(s.last_seen_at)), "mut"), s.ended_at ? field("Ended", esc(s.ended_at), "mut") : ""].join("");
@@ -554,7 +550,6 @@ function renderDetail(id) {
         <div class="fact"><span class="k">Tokens</span><span class="v">${humanTokens(totalTokens(u))}</span></div>
         <div class="fact"><span class="k">Output</span><span class="v">${humanTokens(u.output_tokens)}</span></div>
         <div class="fact"><span class="k">Seen</span><span class="v">${relAge(s.last_seen_at)}</span></div>
-        <div class="fact"><span class="k">Remote ctl</span><span class="v">${s.remote_control ? "on" : "off"}</span></div>
       </div></div>
       <div class="h-right"><span class="pill st-${st}${hasCall(s) ? " call" : ""}"><span class="dot"></span>${esc(s.status)}</span></div></div>
     <div class="d-grid">

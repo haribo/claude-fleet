@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/haribo/claude-vigie/internal/apiclient"
 	"github.com/haribo/claude-vigie/internal/config"
 )
 
@@ -15,7 +16,7 @@ import (
 // disconnected). It reconnects on failure; the tui's poll covers any gap.
 func subscribeEvents(cfg *config.Config, out chan<- struct{}, conn chan<- bool) {
 	url := strings.TrimRight(cfg.ServerURL, "/") + "/api/events"
-	client := &http.Client{} // no timeout: the stream is long-lived
+	client := streamClient()
 	for {
 		streamEvents(client, url, cfg.Token, out, conn)
 		sendState(conn, false) // disconnected; retry after a brief pause
@@ -76,5 +77,23 @@ func sendState(conn chan<- bool, live bool) {
 	select {
 	case conn <- live:
 	default:
+	}
+}
+
+// streamClient is the event stream's own client: no request timeout, because the
+// stream is long-lived by design and a deadline would cut a healthy one — and the
+// same dead-connection tuning every other call the terminal makes already gets.
+//
+// It was a bare client. The health check exists because an HTTP/2 connection can
+// survive a suspend open and mute, leaving the caller waiting about fifteen
+// minutes for the kernel to give up (#732) — and the held-open stream is the
+// connection most exposed to exactly that, while being the one not covered
+// (#793).
+//
+// What it cost was bounded, which is why it went unnoticed: the terminal polls
+// every 5 s regardless, so a dead stream loses the immediacy and not the board.
+func streamClient() *http.Client {
+	return &http.Client{
+		Transport: apiclient.TuneForDeadConnections(http.DefaultTransport.(*http.Transport).Clone()),
 	}
 }

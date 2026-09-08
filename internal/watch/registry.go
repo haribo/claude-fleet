@@ -20,19 +20,6 @@ type sessionRecord struct {
 	WaitingFor string // reason when Status == "waiting" (a permission/dialog)
 	PID        int
 	ProcStart  uint64 // /proc start time (clock ticks) — a pid-reuse guard
-	// BridgeSessionID is Claude's remote-control session id (session_01…), set
-	// while /rc is active; empty otherwise. It forms the resume URL (#253).
-	BridgeSessionID string
-}
-
-// remoteURL builds the /rc resume URL from the bridge session id, or "" when /rc
-// is off. The prefix matches the url field Claude writes verbatim in the
-// transcript's bridge_status lines.
-func (r sessionRecord) remoteURL() string {
-	if r.BridgeSessionID == "" {
-		return ""
-	}
-	return "https://claude.ai/code/" + r.BridgeSessionID
 }
 
 // readRegistry reads Claude Code's session registry and returns the record per
@@ -58,12 +45,11 @@ func readRegistry() map[string]sessionRecord {
 			continue
 		}
 		var raw struct {
-			SessionID       string `json:"sessionId"`
-			Status          string `json:"status"`
-			WaitingFor      string `json:"waitingFor"`
-			PID             int    `json:"pid"`
-			ProcStart       string `json:"procStart"` // Claude stores it as a string
-			BridgeSessionID string `json:"bridgeSessionId"`
+			SessionID  string `json:"sessionId"`
+			Status     string `json:"status"`
+			WaitingFor string `json:"waitingFor"`
+			PID        int    `json:"pid"`
+			ProcStart  string `json:"procStart"` // Claude stores it as a string
 		}
 		if err := json.Unmarshal(data, &raw); err != nil || raw.SessionID == "" {
 			continue
@@ -71,18 +57,8 @@ func readRegistry() map[string]sessionRecord {
 		ps, _ := strconv.ParseUint(raw.ProcStart, 10, 64)
 		m[raw.SessionID] = sessionRecord{
 			SessionID: raw.SessionID, Status: raw.Status, WaitingFor: raw.WaitingFor,
-			PID: raw.PID, ProcStart: ps, BridgeSessionID: raw.BridgeSessionID,
+			PID: raw.PID, ProcStart: ps,
 		}
-	}
-	return m
-}
-
-// remoteControlled returns, per sessionId, whether the session carries a
-// bridgeSessionId (i.e. /rc is active) — read from the same registry.
-func remoteControlled() map[string]bool {
-	m := map[string]bool{}
-	for id, rec := range readRegistry() {
-		m[id] = rec.BridgeSessionID != ""
 	}
 	return m
 }

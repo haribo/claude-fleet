@@ -9,6 +9,39 @@ file is the single source of truth, not a second narrative.
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-09-08
+
+### Changed
+
+- The hidden-columns warning is behind `i` instead of standing above the session
+  list. On a narrow terminal it wrapped onto two lines and cost the board three
+  of its ten sessions, to repeat something already visible — the missing columns
+  are absent from the header, and it is the operator who narrowed the window
+  (#788).
+
+### Removed
+
+- The remote-control column, its sort key and the `rc` filter token. The field
+  vigie read to detect `/rc` is now set on every session whether or not it is
+  active, so the column marked sessions nobody was driving — and there is no
+  documented signal to rebuild it on (#789).
+
+### Fixed
+
+- The terminal notices a dead event stream in seconds instead of waiting on it.
+  After a suspend the connection can stay open and answer nothing; the board kept
+  refreshing on its own poll, but live updates stopped until the kernel gave up
+  (#793).
+
+- A session the daemon reads as over now shows when it ended, instead of a dash.
+  0.13.0 announced this for a session that ended with its process; it was true
+  only where a report established the end, and not on the quieter path where the
+  session simply stopped being reported (#792).
+
+- A machine's card in the browser draws every session it counts. A session whose
+  status the page did not recognise was in the total and in no pill, so the two
+  numbers disagreed with nothing to say why (#791).
+
 ## [0.13.2] - 2026-09-08
 
 ### Fixed
@@ -729,7 +762,8 @@ across machines — it reads and reports session state; it never drives a sessio
 - The API binds `127.0.0.1` by default; every `/api/*` route is behind a
   constant-time shared-token check; request bodies are size-capped.
 
-[Unreleased]: https://github.com/haribo/claude-vigie/compare/v0.13.2...HEAD
+[Unreleased]: https://github.com/haribo/claude-vigie/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/haribo/claude-vigie/compare/v0.13.2...v0.14.0
 [0.13.2]: https://github.com/haribo/claude-vigie/compare/v0.13.1...v0.13.2
 [0.13.1]: https://github.com/haribo/claude-vigie/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/haribo/claude-vigie/compare/v0.12.0...v0.13.0

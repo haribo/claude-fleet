@@ -34,7 +34,6 @@ var sortKeyForColumn = map[string]sortKey{
 	"seen":   sortLastSeen,
 	"total":  sortTokens,
 	"status": sortStatus,
-	"rc":     sortRC,
 }
 
 func TestTheTableOpensOnTheKeyTheSharedFixtureNames(t *testing.T) {
