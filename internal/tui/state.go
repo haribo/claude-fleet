@@ -262,7 +262,7 @@ func (m model) stateLevel() level {
 // renderState draws the state modal: the whole observation chain, one line per
 // layer, in dependency order. A reader can see why three rows are grey by reading
 // the two above them.
-func renderState(rows []stateRow, width int) string {
+func renderState(rows []stateRow, note string, width int) string {
 	labelW := 0
 	for _, r := range rows {
 		if w := len([]rune(r.label)); w > labelW {
@@ -272,6 +272,23 @@ func renderState(rows []stateRow, width int) string {
 	lines := make([]string, 0, len(rows))
 	for _, r := range rows {
 		lines = append(lines, r.level.glyph()+" "+labelStyle.Render(pad(r.label, labelW))+"   "+dimStyle.Render(r.detail))
+	}
+	// The note sits under a rule, outside the rows above it. Those read top to
+	// bottom as a dependency chain — what the TUI observes alone, then what
+	// transits the server, then what is local — and a screen-width fact is not a
+	// link in it. Given a row of its own it would need a level it does not have,
+	// and the grey glyph would claim a state rather than the absence of one
+	// (#788, sessions-chrome.md § 5).
+	if note != "" {
+		// Wrapped to what is left inside the box — two border columns and the 3+3
+		// padding — or it is clamped off at the terminal edge, which is where the
+		// banner it replaces used to wrap for the same reason (#325).
+		inner := width - 8
+		body := dimStyle
+		if inner > 20 {
+			body = body.Width(inner)
+		}
+		lines = append(lines, dimStyle.Render(strings.Repeat("─", labelW+22)), body.Render(note))
 	}
 	box := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).

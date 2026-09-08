@@ -9,6 +9,14 @@ file is the single source of truth, not a second narrative.
 
 ## [Unreleased]
 
+### Changed
+
+- The hidden-columns warning is behind `i` instead of standing above the session
+  list. On a narrow terminal it wrapped onto two lines and cost the board three
+  of its ten sessions, to repeat something already visible — the missing columns
+  are absent from the header, and it is the operator who narrowed the window
+  (#788).
+
 ### Fixed
 
 - A session the daemon reads as over now shows when it ended, instead of a dash.

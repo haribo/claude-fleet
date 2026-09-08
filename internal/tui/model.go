@@ -476,7 +476,7 @@ func (m model) View() string {
 		b.WriteString(renderHelp(m.tab, m.width))
 		return b.String()
 	case m.showState:
-		b.WriteString(renderState(m.stateRows(), m.width))
+		b.WriteString(renderState(m.stateRows(), m.columnsNote(), m.width))
 		return b.String()
 	}
 

@@ -15,14 +15,17 @@ import (
 // TestOverflowBannerWrapsToWidth is the #325 regression: the "N columns hidden"
 // banner must wrap to the terminal width instead of running past the edge and
 // being cut off. At width 120 the banner is the only line that would overflow.
+// The guarantee is #325's and it moved with its subject: the hidden-columns
+// message left the session list for the state modal (#788), and a message that
+// runs past the terminal edge is cut off there just as badly.
 func TestOverflowBannerWrapsToWidth(t *testing.T) {
 	const w = 120
 	m := model{width: w, sessions: []api.SessionView{
 		{Title: "a", Status: "working", LastSeenAt: "2026-07-26T10:00:00Z"},
 	}}
-	out := m.viewSessions()
+	out := renderState(m.stateRows(), m.columnsNote(), w)
 	if !strings.Contains(out, "hidden") {
-		t.Fatal("expected the column-overflow banner at this width")
+		t.Fatal("expected the hidden-columns note at this width")
 	}
 	for _, ln := range strings.Split(out, "\n") {
 		if lw := lipgloss.Width(ln); lw > w {

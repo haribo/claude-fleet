@@ -62,7 +62,7 @@ func TestTheFailureIsStillAnnouncedWithItsReason(t *testing.T) {
 	if m.serverRow().level != levelBroken {
 		t.Errorf("a failed poll left the server row at %v — nothing says the figures are old", m.serverRow())
 	}
-	modal := renderState(m.stateRows(), 140)
+	modal := renderState(m.stateRows(), "", 140)
 	if !strings.Contains(modal, "context deadline exceeded") {
 		t.Errorf("the modal does not name the reason:\n%s", modal)
 	}
@@ -144,7 +144,7 @@ func TestTheSessionsTabDrawsNoWarningLineWhenARefreshFails(t *testing.T) {
 	if out := m.View(); strings.Contains(out, "could not refresh") {
 		t.Errorf("the refresh banner is back on the sessions tab:\n%s", out)
 	}
-	if modal := renderState(m.stateRows(), 140); !strings.Contains(modal, "context deadline exceeded") {
+	if modal := renderState(m.stateRows(), "", 140); !strings.Contains(modal, "context deadline exceeded") {
 		t.Errorf("the modal lost the refresh failure:\n%s", modal)
 	}
 }
@@ -162,7 +162,7 @@ func TestTheSessionsTabDrawsNoWarningLineWhenAWatcherStops(t *testing.T) {
 		t.Errorf("the watcher banner is back on the sessions tab:\n%s", out)
 	}
 	// And says more than the banner did: which machine, and how many of how many.
-	modal := renderState(m.stateRows(), 140)
+	modal := renderState(m.stateRows(), "", 140)
 	if !strings.Contains(modal, "orion") {
 		t.Errorf("the modal does not name the silent machine:\n%s", modal)
 	}
