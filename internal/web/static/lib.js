@@ -187,10 +187,12 @@ export function sessionHaystack(s) {
   return [f(s.name), f(s.machine), f(s.project), f(s.git_branch), f(s.status)].join(" ");
 }
 
-// matchesFilter applies the active filter to one session. `rc` as the whole
-// pattern is a special token selecting remote-controlled sessions rather than a
-// text match — `internal/tui/sessions.go` does the same, and an operator who
-// learns it in one window must find it in the other.
+// matchesFilter applies the active filter to one session: a fuzzy subsequence
+// match over its text, the same rule `internal/tui/sessions.go` applies, so an
+// operator who learns it in one window finds it in the other.
+//
+// It had one reserved token, `rc`, until 0.14.0 removed the feature behind it
+// (ADR-0014). Nothing is reserved now — `rc` matches as text like any pattern.
 export function matchesFilter(s, filter) {
   if (!filter) return true;
   return fuzzyMatch(filter, sessionHaystack(s));

@@ -47,7 +47,9 @@ filtered. The gauges are figures the Stats tab holds in full, so they are what
 gives way.
 
 This paragraph described the deleted summary strip until #531 — its counts,
-`activity`, `rc` and `out`, none of which the bottom bar has ever carried. The
+`activity`, `rc` and `out`, none of which the bottom bar has ever carried. (`rc`
+itself left the product in 0.14.0, [ADR-0014](../adr/0014-retire-remote-control-detection.md);
+the sentence is kept as the record of what that strip held.) The
 rule it states is #486's and still holds; only the bar it was about changed
 (#492).
 
@@ -65,7 +67,6 @@ rows keep their previous order:
 | `tokens`    | most total tokens                                                  |
 | `status`    | most active — see § 2.1                                            |
 | `name`      | A → Z                                                              |
-| `rc`        | remotely controlled first                                          |
 
 ### 2.1 The status order
 
@@ -100,7 +101,7 @@ producing nothing. Attention is carried by the notification and the colour, not 
 the sort. A reader who expects attention-first ordering should read this row as the
 answer, not as an oversight.
 
-`tokens`, `status`, and `rc` break ties by most-recently-seen, so within a rank
+`tokens` and `status` break ties by most-recently-seen, so within a rank
 the freshest session is on top. The active key and direction are shown in the
 bottom bar, and the direction is also readable from the arrow in the column
 header.
@@ -114,8 +115,6 @@ header.
 - **Fuzzy match** (default): the typed characters must appear *in order*
   (case-insensitive subsequence) anywhere across a session's name, machine,
   project, branch, and status. `wbp` matches `web-app`.
-- **`rc`** is a special filter: typing exactly `rc` isolates the
-  remotely-controlled sessions instead of fuzzy-matching.
 
 Filtering composes with visibility and sorting: it narrows what is already
 visible, then the result is sorted. The selection resets to the top as the

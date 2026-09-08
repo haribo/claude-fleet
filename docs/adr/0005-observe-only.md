@@ -41,6 +41,12 @@ writes into a session or drives one.
 
 - The rc toggle (`c` key, `POST /api/sessions/{id}/rc`, the stored/settable flag)
   is **removed**; the `RC` column becomes a detected, read-only state.
+
+  *Since 0.14.0 there is no `RC` column either: the field the detection read
+  stopped distinguishing anything, and it was retired rather than rebuilt
+  ([ADR-0014](0014-retire-remote-control-detection.md)). The decision above is
+  unaffected — vigie never piloted a session, and now does not report on it
+  either.*
 - The client→server write path introduced for rc is dropped (the server API
   returns to report + read-only). If a legitimate server-side *setting* needs a
   write later (e.g. retention already uses `POST /api/settings`), that is a

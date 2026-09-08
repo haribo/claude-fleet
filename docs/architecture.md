@@ -188,10 +188,6 @@ they carry no auth, so they stay off the token-protected surface. See
 - **Usage** — subscription budget (5-hour / 7-day windows, percentages only) is
   fetched by a single leased machine; the token never leaves it. Specced in
   [`design/usage.md`](design/usage.md).
-- **Remote control** — the `/rc` state is *detected* read-only, never set;
-  vigie is observe-only. See
-  [`design/remote-control.md`](design/remote-control.md) and
-  [ADR-0005](adr/0005-observe-only.md).
 
 ## Auth
 

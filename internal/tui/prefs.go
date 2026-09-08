@@ -105,7 +105,7 @@ hide_ended = %t
 # Empty = never hide by inactivity.
 idle_hide_after = %q
 
-# Sessions table order: last seen, tokens, status, name, rc.
+# Sessions table order: last seen, tokens, status, name.
 sort_key = %q
 
 # Reverse the sort direction.
