@@ -10,9 +10,14 @@
 // function and one purpose per package; a file mixing HTTP plumbing into that
 // machine is the part of it that was cheapest to undo (#582).
 //
-// A move, nothing more. No signature changed and no behavior with it — the
-// larger split of watch.go stays deferred on #379's verdict: do it when a feature
-// actually collides with the file, not as a speculative big-bang.
+// A move, nothing more. No signature changed and no behavior with it.
+//
+// It said here that the larger split of watch.go stayed deferred on #379's
+// verdict — do it when a feature collides with the file, not as a speculative
+// big-bang. That is not how it went: the split happened in #754 because the file
+// held five structs and four jobs against a written rule, with no exception
+// recorded for it. The verdict was not overruled; it simply did not cover a file
+// that was large by accumulation rather than by design.
 
 package watch
 
