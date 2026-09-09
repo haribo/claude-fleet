@@ -53,14 +53,24 @@ func TestARunningNotificationLeavesTheCommandOpen(t *testing.T) {
 	}
 }
 
-// The lost-notification case, and the only thing that closes it: the operator
-// typing. There is no liveness cap — a command that runs for two days is a
-// session working for two days (design: session-status.md § 2).
-func TestTheOperatorsNextPromptClosesACommandThatNeverReported(t *testing.T) {
+// The lost-notification case. Nothing closes it — that is the decision, not an
+// oversight (ADR-0015).
+//
+// The prompt used to. #748 kept it as the fallback for a command that never
+// reports, and #810 showed the fallback was itself the defect: the operator who
+// queues a follow-up is *acting on* the command, and the prompt put the session
+// at rest while it ran. A prompt says nothing about a command built to outlive
+// the turn.
+//
+// What is left is a session reading `working` for the rest of its life when a
+// notification is lost — measured at about one in eight. Bounded by the session,
+// and in the safe direction: wrongly busy costs a missed opportunity, wrongly at
+// rest costs an interruption.
+func TestNothingButItsOwnReportClosesABackgroundCommand(t *testing.T) {
 	prompt := `{"type":"user","message":{"content":"now do the other thing"}}`
 	info := parseLines(t, bgLaunch, bgAccepted, bgStop, prompt)
-	if info.BackgroundActive {
-		t.Error("a prompt did not close a background command whose notification never came")
+	if !info.BackgroundActive {
+		t.Error("a prompt closed a command that had not reported; the session goes to rest while it is still running")
 	}
 }
 
@@ -72,5 +82,47 @@ func TestANotificationDoesNotRetireASiblingCommand(t *testing.T) {
 	info := parseLines(t, bgLaunch, bgAccepted, other, otherAccepted, bgStop, bgNotification("completed"))
 	if !info.BackgroundActive {
 		t.Error("closing one background command retired the other")
+	}
+}
+
+// #810. A session babysitting a background command reads `working` (#748), and
+// the point of babysitting is queuing the follow-up: the operator types "when the
+// CI is done, do X", Claude answers, and the session dropped to `idle` — while
+// the command still ran and the session would wake on its own to carry the
+// instruction out. On the board, a machine mid-CI looked at rest.
+//
+// A prompt closes the turn every older tool call belonged to (#483), on the
+// grounds that it proves the session moved on. True of a foreground call whose
+// result never came; false of a background one, which is built to outlive the
+// turn and re-invoke Claude when it finishes. The prompt proves nothing about it.
+func TestAPromptDoesNotEndABackgroundCommand(t *testing.T) {
+	prompt := `{"type":"user","message":{"content":"when the checks pass, merge it"}}`
+	reply := `{"type":"assistant","message":{"id":"m3","content":[{"type":"text","text":"Will do."}]}}`
+
+	info := parseLines(t, bgLaunch, bgAccepted, bgStop, prompt, reply)
+	if !info.BackgroundActive {
+		t.Error("queuing the follow-up put the session at rest while its command was still running")
+	}
+}
+
+// The close it keeps is its own: the command reports, and only then.
+func TestTheCommandStillClosesOnItsOwnNotification(t *testing.T) {
+	prompt := `{"type":"user","message":{"content":"when the checks pass, merge it"}}`
+	info := parseLines(t, bgLaunch, bgAccepted, bgStop, prompt, bgNotification("completed"))
+	if info.BackgroundActive {
+		t.Error("the command reported finished and the session stayed busy")
+	}
+}
+
+// A foreground tool is untouched: a prompt still ends the turn it belonged to,
+// which is what stops a result that never came from pinning the session for the
+// rest of its life (#483).
+func TestAPromptStillEndsAForegroundTool(t *testing.T) {
+	stuck := `{"type":"assistant","message":{"id":"m1","content":[{"type":"tool_use","id":"toolu_fg","name":"Read","input":{"file_path":"/x"}}]}}`
+	prompt := `{"type":"user","message":{"content":"never mind"}}`
+
+	info := parseLines(t, stuck, prompt)
+	if info.PendingTool != "" {
+		t.Errorf("PendingTool = %q after a prompt; a tool call whose result never came would pin the session for good", info.PendingTool)
 	}
 }

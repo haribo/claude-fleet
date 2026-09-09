@@ -239,14 +239,23 @@ list, typically an older Claude Code:
   removed `stalled` for: vigie can see that a command was launched and not that it
   is over. A shell that runs for two days is a session working for two days.
 
-  The lost case is closed by a real event instead: **the operator's next prompt**,
-  the same close the rule below already applies to tool calls and subagents. What
-  remains is a session left open, never prompted again, whose notification was
-  lost — reported `working` indefinitely. vigie cannot tell that apart from a
-  genuine long command, and the point of the rule above is that it must not try.
-  The residual error runs in the safe direction: a session wrongly shown busy
-  costs a missed opportunity, one wrongly shown at rest costs an interruption,
-  which is what vigie exists to prevent.
+  **Nothing else closes it — not even the operator's next prompt.** #748 kept that
+  as the fallback for a command that never reports, and it was itself the defect:
+  babysitting a command is precisely when the operator queues the follow-up ("when
+  the CI is done, do X"), so the prompt is *because* of the command, and closing
+  on it put the session at rest while it ran (#810). A prompt proves the session
+  moved on, which is true of a turn's own tool calls and false of something built
+  to outlive the turn.
+
+  So a lost notification leaves the session reading `working` until the session
+  itself ends — about one in eight of them. That is accepted, not mitigated
+  ([ADR-0015](../adr/0015-no-timer-decides-what-vigie-cannot-observe.md)), and it
+  is tolerable for three reasons that would each have to be checked again if they
+  stopped holding: it dies with the session, since a process found gone reads
+  `ended` before these refinements are consulted; it runs in the safe direction,
+  a session wrongly shown busy costing a missed opportunity where one wrongly
+  shown at rest costs an interruption; and `working` is not an attention state, so
+  a latched session never calls the operator.
 
   **How long it has been waiting is shown, not judged.** The transcript freezes on
   the `tool_use` line while a command runs, so the SEEN column counts from exactly

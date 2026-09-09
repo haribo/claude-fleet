@@ -34,12 +34,18 @@ func TestARealPromptClosesAnOrphanToolCall(t *testing.T) {
 	}
 }
 
-// The same for a backgrounded Bash: an unresolved one keeps the session
-// `working`, which latches just as permanently (refineWithTools).
-func TestARealPromptClosesAnOrphanBackgroundTask(t *testing.T) {
+// **Not** the same for a backgrounded Bash, and the difference is the whole
+// point of the rule above. A foreground call is part of the turn the prompt ends;
+// a backgrounded one is built to outlive that turn and re-invoke Claude when it
+// finishes, so the prompt proves nothing about it — and the operator queuing the
+// follow-up is acting *because* of it (#810, ADR-0015).
+//
+// It latches just as permanently when its report is lost. That is accepted, in
+// the safe direction, and it is why the exemption is narrow: background only.
+func TestARealPromptLeavesABackgroundTaskRunning(t *testing.T) {
 	bg := `{"type":"assistant","message":{"id":"m1","content":[{"type":"tool_use","id":"b1","name":"Bash","input":{"command":"sleep 999","run_in_background":true}}]}}`
-	if info := parseLines(t, bg, realPrompt); info.BackgroundActive {
-		t.Error("BackgroundActive survived a new prompt; the session would read working forever")
+	if info := parseLines(t, bg, realPrompt); !info.BackgroundActive {
+		t.Error("a prompt ended a command that outlives the turn; the session reads at rest while it runs")
 	}
 }
 
