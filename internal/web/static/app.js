@@ -587,8 +587,20 @@ function openDetail(id) {
 function closeDetail() { detailId = null; $("view-detail").hidden = true; $("tab-" + activeTab).hidden = false; syncFilterBar(); window.scrollTo(0, 0); }
 
 // ---------- loading ----------
+// sessionsSeq numbers the sessions fetches. The live stream and the 5 s tick both
+// call for one, so two can be in flight, and the slower one used to land last and
+// win — with older data (#805).
+//
+// Not only a stale board: `noteAttention` decides notifications from the snapshot
+// just stored, against a remembered set, so an answer that moves backwards can
+// re-arm a session already announced and fire for it twice. The terminal has
+// carried the same counter since it went wrong there.
+let sessionsSeq = 0;
+
 async function loadSessions() {
+  const seq = ++sessionsSeq;
   const data = await api("/api/sessions");
+  if (seq !== sessionsSeq) return; // superseded while in flight; this answer is old
   sessions = Array.isArray(data) ? data : [];
   byId = new Map(sessions.map((s) => [s.id, s]));
   renderTabs();

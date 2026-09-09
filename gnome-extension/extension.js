@@ -42,6 +42,7 @@ class VigieIndicator extends PanelMenu.Button {
         this._settingsChangedId = 0;
         this._callingIds = new Set(); // sessions currently calling for the operator, for edge-triggered notifications
         this._primed = false;         // first poll seeds the set without notifying (no launch storm)
+        this._pollSeq = 0;            // drops an answer overtaken by a newer poll (#805)
 
         const box = new St.BoxLayout({style_class: 'panel-status-menu-box'});
         this._icon = new St.Icon({
@@ -85,7 +86,17 @@ class VigieIndicator extends PanelMenu.Button {
         if (token)
             msg.request_headers.append('Authorization', `Bearer ${token}`);
 
+        // Number the polls and drop any answer that is not the newest. The timer
+        // does not wait for the previous request, so two can be out at once and
+        // the slower one used to land last and win — with older data. That is not
+        // only a stale badge: `_notifyNewlyCalling` decides from the snapshot just
+        // stored, against a remembered set, so an answer moving backwards can
+        // re-announce a session already announced (#805). The TUI and the
+        // dashboard carry the same counter.
+        const seq = ++this._pollSeq;
         this._session.send_and_read_async(msg, GLib.PRIORITY_DEFAULT, null, (session, res) => {
+            if (seq !== this._pollSeq)
+                return;
             let bytes;
             try {
                 bytes = session.send_and_read_finish(res);
