@@ -28,9 +28,9 @@ func TestReconcileWatch(t *testing.T) {
 		{"", "", "working", "working", "watch"},        // first observation is the watcher's
 	}
 	for _, c := range cases {
-		gotStatus, gotSource := reconcileWatch(c.current, c.source, c.incoming)
+		gotStatus, gotSource := reconcileWatch(c.current, c.source, c.incoming, false)
 		if gotStatus != c.wantStatus || gotSource != c.wantSource {
-			t.Errorf("reconcileWatch(%q,%q,%q) = (%q,%q), want (%q,%q)",
+			t.Errorf("reconcileWatch(%q,%q,%q, inferred) = (%q,%q), want (%q,%q)",
 				c.current, c.source, c.incoming, gotStatus, gotSource, c.wantStatus, c.wantSource)
 		}
 	}

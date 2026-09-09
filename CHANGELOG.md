@@ -9,6 +9,27 @@ file is the single source of truth, not a second narrative.
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-09-09
+
+### Fixed
+
+- A session babysitting a background command stays `working` when you queue the
+  follow-up. Typing "when the CI is done, do X" used to put it at rest while the
+  command was still running (#810).
+
+- A session no longer stays `working` after a network outage swallowed the hook
+  that ended its turn. When Claude Code itself reports the session at rest, that
+  now clears the stale status; a guess made from a quiet transcript still does
+  not (#803).
+
+- The browser and the GNOME indicator no longer replace a fresh board with an
+  older answer that arrived late, which could also announce a session twice
+  (#805).
+
+- Changing `show ended` or `hide idle after` in the browser redraws the board
+  straight away, instead of leaving it contradicting the setting until the next
+  refresh. Opening the Sessions tab redraws it too (#804).
+
 ## [0.14.0] - 2026-09-08
 
 ### Changed
@@ -762,7 +783,8 @@ across machines — it reads and reports session state; it never drives a sessio
 - The API binds `127.0.0.1` by default; every `/api/*` route is behind a
   constant-time shared-token check; request bodies are size-capped.
 
-[Unreleased]: https://github.com/haribo/claude-vigie/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/haribo/claude-vigie/compare/v0.14.1...HEAD
+[0.14.1]: https://github.com/haribo/claude-vigie/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/haribo/claude-vigie/compare/v0.13.2...v0.14.0
 [0.13.2]: https://github.com/haribo/claude-vigie/compare/v0.13.1...v0.13.2
 [0.13.1]: https://github.com/haribo/claude-vigie/compare/v0.13.0...v0.13.1

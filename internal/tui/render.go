@@ -83,7 +83,7 @@ type column struct {
 }
 
 // columns in display order (mockup #91): identity, context, numbers (right-
-// aligned), then activity, rc, and the colored `● status`. The short session id
+// aligned), then activity and the colored `● status`. The short session id
 // lives in the detail panel only.
 var columns = []column{
 	{"NAME", 22, 0, false, func(s api.SessionView) string { return s.Name }, func(s api.SessionView) lipgloss.Style { return statusStyle(s.Status) }},

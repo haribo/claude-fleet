@@ -239,14 +239,23 @@ list, typically an older Claude Code:
   removed `stalled` for: vigie can see that a command was launched and not that it
   is over. A shell that runs for two days is a session working for two days.
 
-  The lost case is closed by a real event instead: **the operator's next prompt**,
-  the same close the rule below already applies to tool calls and subagents. What
-  remains is a session left open, never prompted again, whose notification was
-  lost — reported `working` indefinitely. vigie cannot tell that apart from a
-  genuine long command, and the point of the rule above is that it must not try.
-  The residual error runs in the safe direction: a session wrongly shown busy
-  costs a missed opportunity, one wrongly shown at rest costs an interruption,
-  which is what vigie exists to prevent.
+  **Nothing else closes it — not even the operator's next prompt.** #748 kept that
+  as the fallback for a command that never reports, and it was itself the defect:
+  babysitting a command is precisely when the operator queues the follow-up ("when
+  the CI is done, do X"), so the prompt is *because* of the command, and closing
+  on it put the session at rest while it ran (#810). A prompt proves the session
+  moved on, which is true of a turn's own tool calls and false of something built
+  to outlive the turn.
+
+  So a lost notification leaves the session reading `working` until the session
+  itself ends — about one in eight of them. That is accepted, not mitigated
+  ([ADR-0015](../adr/0015-no-timer-decides-what-vigie-cannot-observe.md)), and it
+  is tolerable for three reasons that would each have to be checked again if they
+  stopped holding: it dies with the session, since a process found gone reads
+  `ended` before these refinements are consulted; it runs in the safe direction,
+  a session wrongly shown busy costing a missed opportunity where one wrongly
+  shown at rest costs an interruption; and `working` is not an attention state, so
+  a latched session never calls the operator.
 
   **How long it has been waiting is shown, not judged.** The transcript freezes on
   the `tool_use` line while a command runs, so the SEEN column counts from exactly
@@ -336,10 +345,25 @@ A report that merely **confirms** the current status keeps the current owner: a
 confirmation is not a change, so it never transfers ownership away from a hook.
 
 **A hook is authoritative for what only it can see** — that the operator is the
-blocker (`waiting`), or that a turn is open while Claude works silently. The
-watcher only ever sees a quiet-but-alive session as `idle`, so its `idle` must
-**not** retract a *hook-owned* `waiting`, `working`, or `thinking`. A hook `Stop`
-(→ `idle`) or new activity ends the turn.
+blocker (`waiting`), or that a turn is open while Claude works silently. An `idle`
+the watcher *inferred* from a quiet transcript must **not** retract a *hook-owned*
+`waiting`, `working`, or `thinking`. A hook `Stop` (→ `idle`) or new activity ends
+the turn.
+
+**But an observation beats a deduction, and that outranks the sentence above.**
+The watcher reports whether its status was read from Claude Code's own session
+record — or from the process table — rather than deduced from silence. A
+*declared* `idle` is Claude Code saying the session is at rest, and it clears a
+hook-owned status; a deduced one does not.
+
+The distinction exists because a hook outranks the watcher only while it can
+speak. A hook does not post to a daemon already found unreachable — it must not
+pay that deadline on every tool call (`unreachable-daemon.md`) — so an outage
+swallows the `Stop` that ends the turn, and nothing replays it. The session then
+carried a hook-owned `working` with no way to correct it, and the board showed it
+busy while it had been waiting for its operator since the outage (#803). The
+authority was never the hook's by nature; it was the hook's because it was the one
+that had seen something.
 
 **A `waiting` is only cleared once the transcript moves.** To the watcher, "a
 tool is running" and "a permission prompt is blocking" look identical — a turn

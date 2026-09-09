@@ -390,7 +390,7 @@ func applyStatus(sess store.Session, req api.ReportRequest) store.Session {
 	prev := sess.Status
 	if req.Status != "" {
 		if !holdsWaiting(sess, req) {
-			sess.Status, sess.StatusSource = reconcileWatch(sess.Status, sess.StatusSource, req.Status)
+			sess.Status, sess.StatusSource = reconcileWatch(sess.Status, sess.StatusSource, req.Status, req.StatusDeclared)
 		}
 		sess.APIErrorStatus = req.APIErrorStatus // watcher-derived; hooks carry no status
 	} else {
@@ -480,8 +480,19 @@ func timeAfter(a, b string) bool {
 // has to fall back to idle when the transcript goes quiet.
 //
 // It returns the new status and its owning source.
-func reconcileWatch(current, currentSource, incoming string) (status, source string) {
-	if incoming == "idle" && currentSource == "hook" &&
+func reconcileWatch(current, currentSource, incoming string, declared bool) (status, source string) {
+	// A hook outranks the watcher because it speaks from inside the session. That
+	// holds while it can speak: a hook does not post to a daemon already found
+	// unreachable (#578), so an outage swallows the `Stop` and leaves `working`
+	// behind with no way to correct it — and the board showed a session busy that
+	// had been waiting since the outage (#803).
+	//
+	// So the rule is what it was always for: **an observation beats a deduction**.
+	// An `idle` the watcher read from Claude Code's own session record is a
+	// statement by Claude Code and clears a stale hook. An `idle` it inferred from
+	// a quiet transcript does not — that is where a permission prompt and a
+	// running tool look identical (#235), which is the case this guard exists for.
+	if incoming == "idle" && !declared && currentSource == "hook" &&
 		(current == "waiting" || current == "working" || current == "thinking") {
 		return current, "hook" // keep the hook's semantic/active state
 	}

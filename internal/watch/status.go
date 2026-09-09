@@ -19,13 +19,18 @@ import (
 // activity, not the registry (whose status time lags a running turn). error and
 // thinking still refine the base. Sessions the registry does not cover (older
 // clients) fall back to the transcript heuristic.
-func resolveStatus(reg map[string]sessionRecord, regByProc map[procID]string, id string, info *transcript.Info, activityAge time.Duration, lastActivity, now time.Time) (status, activity string, reportAt time.Time) {
+// The returned `declared` says which of the two the status rests on: Claude Code's
+// own session record and the process table — things stated — or the shape of a
+// quiet transcript, which is a deduction. The daemon needs the difference when a
+// hook and this disagree: a hook silenced by an outage leaves a status behind it
+// that only an observation should be allowed to overturn (#803).
+func resolveStatus(reg map[string]sessionRecord, regByProc map[procID]string, id string, info *transcript.Info, activityAge time.Duration, lastActivity, now time.Time) (status, activity string, reportAt time.Time, declared bool) {
 	activity, reportAt = info.Activity, lastActivity
 	rec, known := reg[id]
 	var base string
 	switch {
 	case known && registryDead(rec):
-		return "ended", activity, reportAt // the backing process is gone
+		return "ended", activity, reportAt, true // the backing process is gone
 	case known:
 		base = withError(mapRegistryStatus(rec.Status), info.LastAPIError)
 		switch {
@@ -55,12 +60,15 @@ func resolveStatus(reg map[string]sessionRecord, regByProc map[procID]string, id
 			activity = capText(rec.WaitingFor, 80) // surface the ask in DETAIL
 		}
 	case superseded(id, regByProc):
-		return "ended", activity, reportAt // switched in place on the same process (e.g. /clear) (#367)
+		return "ended", activity, reportAt, true // switched in place on the same process (e.g. /clear) (#367)
 	default:
 		base = sessionStatus(id, info.LastStopReason, info.LastAPIError, activityAge)
 	}
 	base, activity = refineStatus(base, activity, id, info, activityAge, now)
-	return base, activity, reportAt
+	// Only the registry branch above rests on a statement. The refinements read
+	// the transcript, but they can only raise an idle base; the rest-or-not
+	// decision, which is the one a stale hook disputes, came from the record.
+	return base, activity, reportAt, known
 }
 
 // superseded reports whether a session that has left the registry was replaced

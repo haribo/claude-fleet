@@ -28,7 +28,7 @@ func TestAnInterruptedTurnIsNotStillThinking(t *testing.T) {
 	// in until the operator types again.
 	reg := map[string]sessionRecord{"s": {SessionID: "s", Status: "idle"}}
 
-	status, detail, _ := resolveStatus(reg, nil, "s", killed, time.Hour, now.Add(-time.Hour), now)
+	status, detail, _, _ := resolveStatus(reg, nil, "s", killed, time.Hour, now.Add(-time.Hour), now)
 
 	if status != "idle" {
 		t.Errorf("status = %q for a turn the operator killed, want idle", status)
@@ -45,7 +45,7 @@ func TestALiveTurnStillReadsThinking(t *testing.T) {
 	reasoning := &transcript.Info{Thinking: true}
 	reg := map[string]sessionRecord{"s": {SessionID: "s", Status: "busy"}}
 
-	status, _, _ := resolveStatus(reg, nil, "s", reasoning, 2*time.Second, now.Add(-2*time.Second), now)
+	status, _, _, _ := resolveStatus(reg, nil, "s", reasoning, 2*time.Second, now.Add(-2*time.Second), now)
 	if status != "thinking" {
 		t.Errorf("status = %q for a live reasoning turn, want thinking", status)
 	}
