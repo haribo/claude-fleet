@@ -9,6 +9,12 @@ file is the single source of truth, not a second narrative.
 
 ## [Unreleased]
 
+### Fixed
+
+- Changing `show ended` or `hide idle after` in the browser redraws the board
+  straight away, instead of leaving it contradicting the setting until the next
+  refresh. Opening the Sessions tab redraws it too (#804).
+
 ## [0.14.0] - 2026-09-08
 
 ### Changed

@@ -119,6 +119,10 @@ function switchTab(id) {
   if (id === "machines") renderMachines();
   if (id === "stats") { if (!statsLoaded) loadStats(); else renderStats(); }
   if (id === "settings") { if (!settingsLoaded) loadSettings(); else renderSettings(); }
+  // Sessions was the one tab switchTab did not repaint, and the one most often
+  // out of date: a preference changed in Settings only reached it on the next
+  // tick (#804).
+  if (id === "sessions" && !detailId) renderSessions();
   renderTabs(); syncFilterBar(); if (usage || platform) renderBottom(); window.scrollTo(0, 0);
 }
 
@@ -462,16 +466,21 @@ function renderSettings() {
       renderSettings();
     });
   }
+  // These two decide which sessions the board shows, so the board is repainted
+  // with them. They used to redraw the tabs and this panel only, and returning to
+  // Sessions did not redraw it either — so the board contradicted the setting
+  // just changed, and the bottom bar's `hidden N` disagreed with what was on
+  // screen, until the 5 s tick landed (#804).
   $("ended-toggle").addEventListener("change", (e) => {
     showEnded = Boolean(e.target.checked);
     localStorage.setItem(ENDED_KEY, showEnded ? "1" : "0");
-    renderTabs(); renderSettings();
+    renderTabs(); refresh();
   });
   $("idle-select").addEventListener("change", (e) => {
     const ms = Number(e.target.value);
     idleHideAfter = IDLE_PRESETS_MS.includes(ms) ? ms : 0;
     localStorage.setItem(IDLE_KEY, String(idleHideAfter));
-    renderTabs(); renderSettings();
+    renderTabs(); refresh();
   });
   const refresh = () => { renderSettings(); renderSessions(); };
   $("tab-settings").querySelectorAll("input[data-col]").forEach((el) => el.addEventListener("change", () => { toggleCol(el.dataset.col); refresh(); }));
