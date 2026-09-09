@@ -11,6 +11,10 @@ file is the single source of truth, not a second narrative.
 
 ### Fixed
 
+- The browser and the GNOME indicator no longer replace a fresh board with an
+  older answer that arrived late, which could also announce a session twice
+  (#805).
+
 - Changing `show ended` or `hide idle after` in the browser redraws the board
   straight away, instead of leaving it contradicting the setting until the next
   refresh. Opening the Sessions tab redraws it too (#804).
