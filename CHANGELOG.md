@@ -11,6 +11,10 @@ file is the single source of truth, not a second narrative.
 
 ### Fixed
 
+- A session babysitting a background command stays `working` when you queue the
+  follow-up. Typing "when the CI is done, do X" used to put it at rest while the
+  command was still running (#810).
+
 - A session no longer stays `working` after a network outage swallowed the hook
   that ended its turn. When Claude Code itself reports the session at rest, that
   now clears the stale status; a guess made from a quiet transcript still does

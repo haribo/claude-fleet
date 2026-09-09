@@ -131,8 +131,30 @@ func (p *pendingTools) closeTurn() {
 	if len(p.meta) == 0 {
 		return
 	}
-	p.meta = map[string]toolMeta{}
-	p.order = p.order[:0]
+	// A backgrounded command survives the turn it was launched in, so a prompt
+	// says nothing about it. The rule above is that a prompt proves the session
+	// moved on — true of a foreground call whose result never came, and false of a
+	// command built to outlive the turn and re-invoke Claude when it finishes. The
+	// operator who queues the follow-up ("when the CI is done, do X") is the
+	// clearest case: the prompt is *because* of the command, and it put the
+	// session at rest while it was still running (#810).
+	//
+	// What closes one is its own `<task-notification>`, and nothing else. That is
+	// deliberate and it has a price, stated in session-status.md § 2 and in
+	// ADR-0015: a notification that never comes leaves the session reading
+	// `working` for the rest of its life. Bounded by the session, not beyond it —
+	// a process found gone is `ended` before the tool refinements are consulted —
+	// and in the safe direction, since a session wrongly shown busy costs a missed
+	// opportunity where one wrongly shown at rest costs an interruption.
+	kept := make(map[string]toolMeta, len(p.meta))
+	order := p.order[:0:0]
+	for _, id := range p.order {
+		if m, ok := p.meta[id]; ok && m.background {
+			kept[id] = m
+			order = append(order, id)
+		}
+	}
+	p.meta, p.order = kept, order
 }
 
 // resolve returns the most recent unresolved foreground tool's name (for the
