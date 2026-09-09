@@ -35,8 +35,14 @@ type ReportRequest struct {
 	// check (docs/design/version-consistency.md), so it can lag the daemon; without
 	// this fallback its detail would be dropped silently. Removable once no such
 	// client remains.
-	Activity       string `json:"activity,omitempty"`
-	Status         string `json:"status,omitempty"`           // explicit status (watcher); empty = derive from event
+	Activity string `json:"activity,omitempty"`
+	Status   string `json:"status,omitempty"` // explicit status (watcher); empty = derive from event
+	// StatusDeclared says the watcher read Status from Claude Code's own session
+	// record rather than inferring it from a quiet transcript. It is how the
+	// daemon tells an observation from a deduction when the two disagree
+	// (#803); absent means inferred, which is the safe reading for a watcher
+	// that predates the field.
+	StatusDeclared bool   `json:"status_declared,omitempty"`
 	Usage          *Usage `json:"usage,omitempty"`            // present on Stop / SessionEnd
 	APIErrorStatus int    `json:"api_error_status,omitempty"` // HTTP code of a live API error (watcher); 0 = none
 	// WatcherVersion/WatcherCommit are the watcher's build, carried on Event=="watch"

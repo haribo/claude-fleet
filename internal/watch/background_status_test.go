@@ -18,7 +18,7 @@ func TestASessionWaitingOnABackgroundCommandReadsWorking(t *testing.T) {
 	reg := map[string]sessionRecord{"s": {SessionID: "s", Status: "shell"}}
 	running := &transcript.Info{BackgroundActive: true}
 
-	status, detail, _ := resolveStatus(reg, nil, "s", running, 5*time.Minute, now.Add(-5*time.Minute), now)
+	status, detail, _, _ := resolveStatus(reg, nil, "s", running, 5*time.Minute, now.Add(-5*time.Minute), now)
 
 	if status != "working" {
 		t.Errorf("status = %q, want working — the board offers a session that will resume by itself as free", status)
@@ -36,7 +36,7 @@ func TestAnOperatorAtAShellPromptIsStillIdle(t *testing.T) {
 	now := time.Now()
 	reg := map[string]sessionRecord{"s": {SessionID: "s", Status: "shell"}}
 
-	status, detail, _ := resolveStatus(reg, nil, "s", &transcript.Info{}, 5*time.Minute, now.Add(-5*time.Minute), now)
+	status, detail, _, _ := resolveStatus(reg, nil, "s", &transcript.Info{}, 5*time.Minute, now.Add(-5*time.Minute), now)
 
 	if status != "idle" || detail != "shell" {
 		t.Errorf("(%q, %q), want (idle, shell)", status, detail)
@@ -52,7 +52,7 @@ func TestALongBackgroundCommandStillReadsWorking(t *testing.T) {
 	running := &transcript.Info{BackgroundActive: true}
 
 	twoDays := 48 * time.Hour
-	status, _, _ := resolveStatus(reg, nil, "s", running, twoDays, now.Add(-twoDays), now)
+	status, _, _, _ := resolveStatus(reg, nil, "s", running, twoDays, now.Add(-twoDays), now)
 	if status != "working" {
 		t.Errorf("status = %q after 48 h, want working — a timer must not decide a command has stopped", status)
 	}

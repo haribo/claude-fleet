@@ -138,7 +138,7 @@ func (s *scanner) scan(root, machine string, maxAge time.Duration, now time.Time
 		}
 		usage := info.Usage
 		model, effort := s.trackLineage(reg, id, info)
-		status, activity, reportAt := resolveStatus(reg, regByProc, id, info, activityAge, lastActivity, now)
+		status, activity, reportAt, declared := resolveStatus(reg, regByProc, id, info, activityAge, lastActivity, now)
 		apiErr := 0
 		if status == "error" {
 			apiErr = info.LastAPIError // carry the HTTP code only while the error is shown
@@ -160,6 +160,7 @@ func (s *scanner) scan(root, machine string, maxAge time.Duration, now time.Time
 			PermissionMode: info.PermissionMode,
 			Title:          info.Title,
 			Status:         status,
+			StatusDeclared: declared,
 			Usage:          &usage,
 			APIErrorStatus: apiErr,
 			Detail:         activity,
