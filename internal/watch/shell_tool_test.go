@@ -29,7 +29,7 @@ func TestAShellRunningAToolIsWorking(t *testing.T) {
 	running := &transcript.Info{PendingTool: "Bash", LastStopReason: "tool_use", Activity: "Bash: run the e2e suite"}
 
 	for _, age := range []time.Duration{5 * time.Second, 46 * time.Second, 3 * time.Minute, time.Hour} {
-		status, detail, _ := resolveStatus(reg, nil, "s", running, age, now.Add(-age), now)
+		status, detail, _, _ := resolveStatus(reg, nil, "s", running, age, now.Add(-age), now)
 		if status != "working" {
 			t.Errorf("a command running for %s reads %q, want working — the session is waiting on it", age, status)
 		}
@@ -47,7 +47,7 @@ func TestAShellPromptWithNoToolIsStillIdle(t *testing.T) {
 	reg := map[string]sessionRecord{"s": {SessionID: "s", Status: "shell"}}
 	resting := &transcript.Info{}
 
-	status, detail, _ := resolveStatus(reg, nil, "s", resting, 10*time.Minute, now.Add(-10*time.Minute), now)
+	status, detail, _, _ := resolveStatus(reg, nil, "s", resting, 10*time.Minute, now.Add(-10*time.Minute), now)
 	if status != "idle" || detail != "shell" {
 		t.Errorf("a shell prompt reads (%q, %q), want (idle, shell) — #280 is not what this changes", status, detail)
 	}

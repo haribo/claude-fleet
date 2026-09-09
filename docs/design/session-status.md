@@ -336,10 +336,25 @@ A report that merely **confirms** the current status keeps the current owner: a
 confirmation is not a change, so it never transfers ownership away from a hook.
 
 **A hook is authoritative for what only it can see** — that the operator is the
-blocker (`waiting`), or that a turn is open while Claude works silently. The
-watcher only ever sees a quiet-but-alive session as `idle`, so its `idle` must
-**not** retract a *hook-owned* `waiting`, `working`, or `thinking`. A hook `Stop`
-(→ `idle`) or new activity ends the turn.
+blocker (`waiting`), or that a turn is open while Claude works silently. An `idle`
+the watcher *inferred* from a quiet transcript must **not** retract a *hook-owned*
+`waiting`, `working`, or `thinking`. A hook `Stop` (→ `idle`) or new activity ends
+the turn.
+
+**But an observation beats a deduction, and that outranks the sentence above.**
+The watcher reports whether its status was read from Claude Code's own session
+record — or from the process table — rather than deduced from silence. A
+*declared* `idle` is Claude Code saying the session is at rest, and it clears a
+hook-owned status; a deduced one does not.
+
+The distinction exists because a hook outranks the watcher only while it can
+speak. A hook does not post to a daemon already found unreachable — it must not
+pay that deadline on every tool call (`unreachable-daemon.md`) — so an outage
+swallows the `Stop` that ends the turn, and nothing replays it. The session then
+carried a hook-owned `working` with no way to correct it, and the board showed it
+busy while it had been waiting for its operator since the outage (#803). The
+authority was never the hook's by nature; it was the hook's because it was the one
+that had seen something.
 
 **A `waiting` is only cleared once the transcript moves.** To the watcher, "a
 tool is running" and "a permission prompt is blocking" look identical — a turn

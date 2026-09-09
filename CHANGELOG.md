@@ -11,6 +11,11 @@ file is the single source of truth, not a second narrative.
 
 ### Fixed
 
+- A session no longer stays `working` after a network outage swallowed the hook
+  that ended its turn. When Claude Code itself reports the session at rest, that
+  now clears the stale status; a guess made from a quiet transcript still does
+  not (#803).
+
 - The browser and the GNOME indicator no longer replace a fresh board with an
   older answer that arrived late, which could also announce a session twice
   (#805).
