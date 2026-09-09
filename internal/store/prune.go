@@ -13,6 +13,20 @@ const staleWhere = `(CASE WHEN last_report_at != '' THEN last_report_at ELSE las
 // PruneSessions deletes sessions — and their events and token samples — whose
 // last report is older than olderThan, bounding the database. It returns the
 // number of sessions removed.
+//
+// The last report is the only thing consulted, deliberately. It cannot tell a
+// machine that will not come back from one that simply cannot reach the daemon:
+// from here the two are the same silence, so an outage longer than the window
+// deletes the sessions of a machine still running them (#806). They return on the
+// next scan; their event log, samples and start time do not. Token totals do —
+// the rollup counts against a mark this never touches (#432).
+//
+// Sparing an unreachable machine was considered and does not work. The daemon
+// draws that distinction for the *board* — `stale` rather than `ended` when no
+// watcher is heard from a machine (#285) — on a sixty-second window, which makes
+// a machine gone for a year "unreachable" too. Sparing on it would spare every
+// dead machine, and nothing would ever be pruned. Documented instead, in
+// docs/deployment.md.
 func (s *Store) PruneSessions(ctx context.Context, olderThan time.Duration, now time.Time) (int, error) {
 	cutoff := now.Add(-olderThan).UTC().Format(time.RFC3339)
 

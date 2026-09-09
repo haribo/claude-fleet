@@ -19,6 +19,35 @@ boundary and the security implications; it changes no defaults.
 It is single-node by design (one SQLite writer, an in-memory SSE hub) — run **one
 instance**, not replicas.
 
+#### What retention deletes, and what a network outage costs
+
+`--session-retention` deletes a session whose **last report** is older than the
+window, and nothing else is consulted. That is what the setting means, and it is
+right for what it exists for: a machine that will not come back.
+
+It cannot tell that machine from one that simply cannot reach the daemon. From
+the daemon's side the two are the same silence — a machine off the VPN for two
+minutes and a machine gone for a year both stop reporting. So an outage longer
+than the window deletes the sessions of a machine that is still running them
+(#806).
+
+**What that costs, precisely.** The sessions come back on the next scan, as new
+rows. What does not come back is their past: the event log, the token samples,
+and the start time. **Token totals are not lost** — the daily rollup counts
+against a mark in a separate table that pruning does not touch, which is the case
+that mark was introduced for ([token-rollup.md](design/token-rollup.md)).
+
+**Why it is not fixed by sparing an unreachable machine.** The daemon does make
+that distinction for the *board* — a session that stops reporting reads `stale`
+rather than `ended` when no watcher is heard from that machine, because *no news*
+is not *dead* (#284/#285). But it decides "heard from" on a sixty-second window,
+so a machine gone forever is "unreachable" too. Sparing on that basis would spare
+every dead machine as well, and nothing would ever be pruned.
+
+**The practical advice**: set the window comfortably longer than any outage you
+expect to sit through. The default of 24 h covers a working day offline; the API
+refuses anything under an hour for the same reason.
+
 ### Ops listener (metrics & health)
 
 `/metrics` (Prometheus) and `/healthz` (liveness) are served on a **separate
